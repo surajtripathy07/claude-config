@@ -20,8 +20,21 @@ cd ~/dev/claude-config
 ./install.sh
 ```
 
-Skills are symlinked into `~/.claude/skills/`, so a `git pull` in the clone updates them everywhere. If you don't want to keep the clone around, use `./install.sh --copy` instead.
+Skills are symlinked into `~/.claude/skills/` and `global/CLAUDE.md` is symlinked to
+`~/.claude/CLAUDE.md` (standing rules for every project; an existing hand-written one is
+backed up, not overwritten). If you don't want to keep the clone around, use
+`./install.sh --copy` instead.
+
+## Get the latest version on any device
+
+```sh
+~/dev/claude-config/sync.sh
+```
+
+Pulls from GitHub and re-runs the installer, so new skills get linked and everything is
+current. It refuses to run over uncommitted local edits so nothing is lost.
 
 ## Update from a device
 
-Edit the skill under the clone (or under `~/.claude/skills/` — same files via symlink), then commit and push. Other devices pick it up with `git pull`.
+Edit under the clone (or under `~/.claude/skills/` — same files via symlink), then commit
+and push. Other devices pick it up with `sync.sh`.

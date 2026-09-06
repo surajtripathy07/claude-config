@@ -90,11 +90,45 @@ shows up. Skip only if the change is genuinely one-off, and say so.
 Anything unverified, any behaviour I inferred rather than observed, any edge I did not
 test. Empty is allowed only if true.
 
-### 8. Explain it back (default on, the reader can skip)
-End with: *"Explain the change back to me in your own words, or reply `skip`."* If they
-explain, correct precisely: what they got right, what they missed, what they had
-backwards. Keep the correction short; the point is calibration, not a second lecture.
-Missed pieces often mean §1 was too thin — say that if it is so.
+### 8. Open door
+End with one line: *"Name any section to go deeper, or explain it back to me if you want
+your understanding checked."* Nothing more. The reader decides whether they are confident;
+they do not have to prove it. If they do explain back, correct precisely: right, missed,
+backwards. Short — calibration, not a second lecture. Missed pieces often mean §1 was
+too thin; say so.
+
+## Show, don't describe — ASCII diagrams, inline, terminal only
+
+A picture buys depth per minute only where the content is spatial or sequential. Three
+places in the walkthrough are:
+
+- **§1 mechanism**: boxes for the pieces, arrows for what flows, the changed piece marked.
+- **§3 before/after**: the same diagram twice, or one diagram with the old path struck
+  and the new path marked.
+- **§5 rebuild path**: an ordered flow or a small decision tree.
+
+Draw when the change involves **three or more interacting parts** or **crosses a boundary**
+(build→deploy, config→runtime, client→server, request→queue→worker). Below that, prose is
+faster. Never draw for the reasoning, assumptions, verification, or uncertainty sections.
+
+Rules for the drawing:
+
+- Plain ASCII in a fenced code block. Boxes, `-->`, `|`, labels. No mermaid, no SVG.
+- Everything stays in this conversation. Never publish an artifact, open a browser, or
+  write a file for the reader to go look at — leaving the terminal is a cost this skill
+  does not spend.
+- Mark the changed element visibly: `[*]`, `<-- changed`, or a `NEW`/`OLD` label.
+- Keep it under about twelve lines wide and eight tall; if it does not fit, the diagram is
+  showing too much — cut to the path the change touches.
+
+Example shape (mechanism with the changed piece marked):
+
+```
+push to main --> GitHub Actions runner --> setup Hugo [0.163.3]  <-- changed
+                                              |
+                                              v
+                                     hugo --minify --> public/ --> Pages deploy
+```
 
 ## Asking — a question must carry what is needed to answer it
 
