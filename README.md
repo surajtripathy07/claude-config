@@ -10,6 +10,7 @@ Portable Claude Code configuration — personal skills installable on any device
 | `git-commit` | Commit message conventions (what/why, type::, supervision:: labels) |
 | `write-goal` | Writes an executable goal file into `docs/goals/` from repo state |
 | `pending-decisions` | Surfaces every pending maintainer decision as a decision brief |
+| `own-it` | Author-depth walkthrough of a change or decision: mechanism, reasoning, verification, rebuild path |
 
 ## Install on a new device
 

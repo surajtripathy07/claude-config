@@ -4,6 +4,9 @@ description: Writes git commit messages. Use when creating a git commit, ammendi
 model: haiku
 ---
 
+Before writing the commit message: if the change has not yet been walked through with the
+`own-it` skill this session, run it first so the user owns the change before it is recorded.
+
 When writing commits:
 
 - Add detail about the changes being made.
