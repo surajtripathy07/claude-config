@@ -9,6 +9,11 @@ Before writing the commit message: if the change has not yet been walked through
 
 When writing commits:
 
+- Subject line (first line) must be 72 characters or fewer. Hard limit, no exceptions.
+  - Count it before committing, e.g. `printf '%s' "<subject>" | wc -c` must print <= 72.
+  - If the subject runs over, shorten it and move the detail into the body; never truncate
+    mid-word or drop the meaning.
+  - Leave a blank line between the subject and the body.
 - Add detail about the changes being made.
   - What
   - Why
