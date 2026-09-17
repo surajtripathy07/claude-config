@@ -1,10 +1,20 @@
-# Phase 1 — Ground in the problem the MR is solving
+# Phase 1 — Ground in the problem the change request is solving
 
 The goal is to be able to state, in the issue's own words, what was asked, and in the
-code's own names, how the MR meets it. Until both halves are written down the review has
+code's own names, how the change meets it. Until both halves are written down the review has
 not started.
 
-## 1. Pull everything the MR points at
+"Change request" here means whatever the host calls it — a merge request on GitLab, a pull
+request on GitHub. The profile names the term and the CLI; use the project's own vocabulary
+in anything the user or the author reads.
+
+## 1. Pull everything the change request points at
+
+Three things are needed, whatever the host: **the change request's metadata** (title,
+labels, reviewers, description, head commit, pipeline state), **the issues it closes or
+mentions**, and **every discussion thread on it**. The profile says which CLI provides them.
+
+With the GitLab profile (`glab`):
 
 ```sh
 GL=/opt/homebrew/opt/glab/bin/glab
@@ -14,24 +24,30 @@ $GL api "projects/:id/merge_requests/<iid>/discussions?per_page=100"   # all thr
 $GL mr issues <iid>                                  # issues the MR closes / mentions
 ```
 
-`:id` is `gitlab-org%2Fcustomers-gitlab-com` or `gitlab-org%2Fgitlab` (URL-encoded path).
-Use `?per_page=100&page=N` when a list may exceed 100.
+`:id` is the URL-encoded project path (e.g. `namespace%2Fproject`), from the profile or
+`git remote get-url origin`. Use `?per_page=100&page=N` when a list may exceed 100.
+
+A GitHub profile uses `gh`'s equivalents (`gh pr view`, `gh api` against the pulls and
+issues endpoints); the profile documents the exact calls and the field names its JSON uses.
+Do not improvise commands for a host whose profile does not document them — ask the user.
 
 Then follow **every** link in the description, in this priority:
 
 1. Issues (`#123`, `group/project#123`, full URLs). Read the issue body, then the whole
-   discussion with `glab api projects/:id/issues/<iid>/discussions?per_page=100`. Product
-   decisions often live in a comment, not the body. Note the author of each decisive
-   comment and the date.
-2. Other MRs referenced (`!456`). Read their description; if the MR says "removed in
-   !456", check the diff of !456 actually did that.
-3. Docs links (handbook, docs.gitlab.com, design docs). Fetch with WebFetch and quote the
-   sentence the MR relies on.
+   discussion — on the GitLab profile
+   `glab api projects/:id/issues/<iid>/discussions?per_page=100`, on another host the
+   profile's equivalent. Product decisions often live in a comment, not the body. Note the
+   author of each decisive comment and the date.
+2. Other change requests referenced (`!456`, `#456`). Read their description; if this one
+   says "removed in !456", check that the diff of !456 actually did that.
+3. Docs links (internal handbook, product docs, design docs). Fetch with WebFetch and quote
+   the sentence the change relies on.
 4. Epics, Slack links, Figma. Slack and Figma need the user; note them as "not read" and
    ask the user to paste the relevant part if it matters.
 
-For history questions ("why was this changed before?", "who owns this?") in
-customers-dot, use the Orbit MCP query templates in `doc/agents/orbit-queries.md`.
+For history questions ("why was this changed before?", "who owns this?"), check the
+project's own doc for history-query tooling (e.g. an MCP query template file) before
+falling back to `git log` / `git blame` by hand.
 
 ## 2. Write the Understanding section
 
@@ -52,7 +68,8 @@ issue requirement to a diff hunk, that is a gap, and it is written down.
 
 ## 3. Check the description itself
 
-The MR template in both repos asks for four things. Record present / missing / weak:
+Most change-request templates ask for four things (the profile names the project's own
+template and any extra sections it requires). Record present / missing / weak:
 
 | Item | Present means |
 |---|---|
@@ -68,16 +85,17 @@ author (queue). Do not soften them; the user decides the tone when they see the 
 
 The review's mandatory set depends on role. Sources, in order:
 
-1. `reviewers` on the MR (from `glab mr view`).
-2. Labels: `~database` plus `~"database::review pending"` means a DB review is open;
-   `~"database::approved"` means it is done.
-3. Danger's roulette comment. Danger is the CI bot that posts a comment headed
-   `## Reviewer roulette` with a table `Category | Reviewer | Maintainer`. In customers-dot
-   it posts as a project bot user (`project_<id>_bot_<hash>`), in gitlab-org/gitlab as
-   `gitlab-bot`. Parse the table: if the user's handle is in the `database` row, they are
-   the database reviewer or maintainer for this MR.
+1. The **reviewers assigned** on the change request (GitLab profile: `glab mr view`;
+   another host: the profile's equivalent).
+2. **Labels** that mark a specialist review as open or done. The profile lists the
+   project's own label vocabulary — e.g. a `database` label plus a "review pending" state
+   label means a database review is open, and an "approved" state label means it is done.
+3. **The reviewer-assignment bot's comment**, if the profile names one. Such a bot posts a
+   table of `Category | Reviewer | Maintainer` rows; the profile records the bot's username
+   and the comment's heading so the table can be found and parsed. If the user's handle is
+   in the row for a specialty (database, frontend, …), they hold that role on this change.
 
-Record the role. If none of the three sources names the user, ask them which hat they are
+Record the role. If none of these sources names the user, ask them which hat they are
 wearing before Phase 4.
 
 ## 5. Draft the understanding-confirmation comment

@@ -1,8 +1,8 @@
 ---
-Distilled 2026-09-07 from gitlab-org/gitlab `doc/development/` at commit 718b5cb265bf (2026-08-31), read from ~/repo/gitlab-development-kit/gitlab. Source of truth is the docs, not this file: when an item fires during a review, open the local doc file it cites (or the public URL) and read that section in full before recording a verdict. Refresh this file when the docs change; record the new commit here.
+These reference files distill GitLab's public developer documentation (docs.gitlab.com) into a portable review checklist — freely readable, sourced, and not specific to any one project's private code. The distillation is pinned at docs commit `<sha>` — refresh this file when the docs change and record the new commit here. Source of truth is those docs, not this file: when an item fires during a review, open the doc it cites and read that section in full before recording a verdict. Where the project under review differs, the profile says so — see "Applicability" at the end.
 ---
 
-# Frontend review checklist (gitlab-org/gitlab docs)
+# Frontend review checklist (distilled from public developer docs)
 
 **Source pointer convention.** `doc/development/<path>.md#<anchor>` maps to `https://docs.gitlab.com/development/<path>/#<anchor>`. Files named `_index.md` map to the directory URL (for example `doc/development/fe_guide/_index.md` → `https://docs.gitlab.com/development/fe_guide/`).
 
@@ -24,7 +24,7 @@ Pages read: `fe_guide/_index.md`, `fe_guide/vue.md`, `fe_guide/style/vue.md`, `f
 - [ ] Data passed into the Vue app is explicit: no spread of datasets into `provide`/`props` ("keep our codebase explicit, discoverable, and searchable"); parse non-scalar values at instantiation (for example `parseBoolean`). — `fe_guide/style/vue.md#basic-rules`
 - [ ] Data from HAML arrives via `data-*` attributes read once at mount time (data attributes are strings; cast them); `initSimpleApp` and `data-provide` JSON are acceptable; the mount `id` "is unique across the codebase." — `fe_guide/vue.md#providing-data-from-haml-to-javascript`, `#the-initsimpleapp-helper`, `#props`
 - [ ] `gl` object read only at the entry point and passed as props. — `fe_guide/vue.md#accessing-the-gl-object`
-- [ ] "Every Vue component should have a `name` property. Use PascalCase derived from the filename." Generic filenames get directory context (`AdminUsersApp`); EE components sharing a CE name get an `EE` suffix (`BranchSelectorEE`). — `fe_guide/style/vue.md#component-name-property`
+- [ ] "Every Vue component should have a `name` property. Use PascalCase derived from the filename." Generic filenames get directory context (`AdminUsersApp`); where a licensed-tier component shares a name with a base one, the project's convention distinguishes them by suffix. — `fe_guide/style/vue.md#component-name-property`
 - [ ] Kebab-case component names in templates (`<my-component />`). — `fe_guide/style/vue.md#component-usage-within-templates`
 - [ ] No `<style>` tags in Vue components; use Tailwind utility classes or page-specific CSS. — `fe_guide/style/vue.md#style-tags`
 - [ ] No JavaScript classes in `data()`; "Do not add new JavaScript class implementations"; move business logic to separate files. — `fe_guide/vue.md#mixing-vue-and-javascript-classes-in-the-data-function`
@@ -32,7 +32,7 @@ Pages read: `fe_guide/_index.md`, `fe_guide/vue.md`, `fe_guide/style/vue.md`, `f
 - [ ] Composition API: use `<script>` with `setup()` (not `<script setup>`); one API style per component; composables prefixed `use`/`use_`; composables minimize lifecycle hooks and clean up what they register; no `getCurrentInstance` escape hatch. — `fe_guide/vue.md#prefer-script-over-script-setup`, `#aim-to-have-one-api-style-per-component`, `#composables`, `#avoid-lifecycle-pitfalls`, `#avoid-escape-hatches`
 - [ ] Vue 3 migration debt avoided: no new filters, event buses, functional templates, or `slot` attributes. — `fe_guide/vue.md#vue-2---vue-3-migration`
 - [ ] Reusable components go in `vue_shared/components`; a table is a good component, a one-off cell is not. — `fe_guide/vue.md#a-folder-for-components`
-- [ ] Prefer Pajamas (`@gitlab/ui`) components. — `contributing/merge_request_workflow.md#ui-changes`, `fe_guide/_index.md#pajamas-design-system`
+- [ ] Prefer the project's design-system components over new one-off markup. — `contributing/merge_request_workflow.md#ui-changes`
 
 ### B2. Props, emits, and data flow
 
@@ -50,7 +50,7 @@ Source: `fe_guide/state_management.md` — `https://docs.gitlab.com/development/
 - [ ] "You should prefer using the standard Vue data flow in your application first: components define local state and pass it down through props and change it through events." Reach for a store only when state is shared across non-descendant components. "If you're still uncertain, prefer using Apollo before Pinia." — `#do-i-need-to-have-state-management`
 - [ ] Pick Apollo when: "You rely on the GraphQL API" or need Apollo features (parametrized cache/invalidation, polling, stale-while-revalidate, subscriptions). — `#pick-apollo-when`
 - [ ] Pick Pinia when: a significant percentage of state is client-side; migrating from Vuex is high priority; the app doesn't rely primarily on GraphQL. — `#pick-pinia-when-you-have-any-of-these`
-- [ ] "Vuex is deprecated in GitLab and **no new Vuex stores should be created**." — `#top`; also `fe_guide/_index.md#introduction`
+- [ ] Where the project has deprecated its store library, **no new stores should be created** in it; new state goes to the current approach. — `#top`; also `fe_guide/_index.md#introduction`
 - [ ] Combining Pinia and Apollo "is not recommended". If unavoidable: "**Never use Apollo Client in Pinia stores**"; do not sync data between them; one source of truth per request. — `#combining-pinia-and-apollo`
 - [ ] "Do not add new Pinia stores on top of the existing Vuex store, migrate first." — `#vuex-used-alongside-apollo`
 - [ ] Goal: "stop using Apollo and Vuex together." — `fe_guide/_index.md#goals`
@@ -61,7 +61,7 @@ Source: `fe_guide/graphql.md` — `https://docs.gitlab.com/development/fe_guide/
 
 - [ ] GraphQL is "the first choice" for API calls; REST only for simple Haml pages or legacy areas. — `fe_guide/_index.md#introduction`
 - [ ] Uses the default client from `~/lib/graphql` (`createDefaultClient`), created where the app mounts. — `#apollo-client`, `#usage-in-vue`
-- [ ] File naming: `*.query.graphql`, `*.mutation.graphql`, `*.fragment.graphql`; CustomersDot proxy queries end in `.customer.query.graphql` etc. — `#graphql-queries`
+- [ ] File naming: `*.query.graphql`, `*.mutation.graphql`, `*.fragment.graphql`; a project that proxies another service's schema may add its own suffix convention (the profile records it). — `#graphql-queries`
 - [ ] **Feature category comment required** on every query/mutation/subscription file: `# @feature_category: <category>` (enforced by ESLint `local-rules/graphql-require-feature-category`; value must be in `config/feature_categories.yml`). Optional `# @urgency: high|medium|default|low`. — `#feature-category-requirement`, `#urgency-tag-optional`
 - [ ] Fragments used for readability/reuse, imported with `#import`. — `#fragments`
 - [ ] **Global `id` queried for every type that has an `id` in the schema** ("It is required"); use `getIdFromGraphQLId` when the PK is needed. — `#global-ids`
@@ -69,10 +69,11 @@ Source: `fe_guide/graphql.md` — `https://docs.gitlab.com/development/fe_guide/
 - [ ] Mutation `update` hook only when adding/removing items from the cache; updating an existing item with `id` in the payload updates automatically. — `#when-to-use-and-not-use-update-hook-in-mutations`
 - [ ] Types without `id` that produce "Cache data may be lost" warnings need a `merge` type policy. — `#multiple-client-queries-for-the-same-object`
 - [ ] **`@client`**: preferred way to ship frontend ahead of backend; skipped by the `graphql-verify` CI job; "Make sure to track the removal of the directive in a follow-up issue." Adding files to `config/known_invalid_graphql_queries.yml` disables validation for the whole file and should be short-lived. — `#using-the-client-directive`, `#adding-an-exception-to-the-list-of-known-failures`
-- [ ] **Feature-flagged queries**: prefer `@include(if: $flag)`/`@skip` driven by `gon.features`; the guarded field must exist in the schema, and the backend resolver should return `null` under the same flag. Duplicated query versions "should be avoided" except when new entities aren't in the schema or are flagged at the schema level. — `#feature-flagged-queries`, `#the-include-directive`, `#avoiding-multiple-query-versions`
+- [ ] **Feature-flagged queries**: prefer `@include(if: $flag)`/`@skip` driven by however flag state reaches the frontend; the guarded field must exist in the schema, and the backend resolver should return `null` under the same flag. Duplicated query versions "should be avoided" except when new entities aren't in the schema or are flagged at the schema level. — `#feature-flagged-queries`, `#the-include-directive`, `#avoiding-multiple-query-versions`
 - [ ] **Pagination**: Relay cursor pagination; use `page_info.fragment.graphql`; `fetchMore` for user-driven pagination; a non-smart recursive query when all data is needed up front. — `#working-with-pagination`, `#using-fetchmore-method-in-components`, `#using-a-recursive-query-in-components`
 - [ ] Batching via `context.batchKey` when the same query fires repeatedly from one component. — `#batching-similar-queries`
-- [ ] **Polling**: ETag-based caching preferred over plain Apollo polling; headers `X-GITLAB-GRAPHQL-RESOURCE-ETAG`, `X-GITLAB-GRAPHQL-FEATURE-CORRELATION`. — `#polling-and-performance`
+- [ ] **Polling**: ETag-based caching preferred over plain client polling; the project's own
+  resource-ETag and correlation headers carry it. — `#polling-and-performance`
 - [ ] **Error handling**: handle **both** top-level errors (non-recoverable; message defined client-side) and errors-as-data (`errors` field requested on every mutation; may be shown to the user). — `#handling-errors`, `#top-level-errors`, `#errors-as-data`
 - [ ] Manually triggered queries use `skip()` or `addSmartQuery`. — `#manually-triggering-queries`
 - [ ] Subscriptions: thin payloads with refetch, visibility guards, batched fetches, polling safety net, no accumulation. — `#best-practices-for-subscriptions`
@@ -95,7 +96,7 @@ Source: `fe_guide/accessibility/best_practices.md` — `https://docs.gitlab.com/
 - [ ] ARIA only for patterns with no semantic equivalent (dialogs, tabs, custom dropdowns), with WCAG testing. — `#when-to-use-aria`
 - [ ] Automated coverage: Storybook axe-playwright tests run in CI on Vue/JS changes and "block merges when they find violations" but only for components with up-to-date stories; feature tests with `axe-core-gem` for full journeys; new components should have stories covering all states plus manual keyboard and screen-reader testing. — `accessibility/_index.md#storybook-component-testing`, `#new-components`, `accessibility/automated_testing.md#our-testing-approach`
 - [ ] Test selectors: prefer `findByRole` ("helps enforce accessibility best practices") over `data-testid`; `data-testid` in kebab-case as fallback. — `testing_guide/frontend_testing.md#how-to-query-dom-elements`
-- [ ] Contrast: not covered in fe_guide text read; the docs defer to Pajamas (`https://design.gitlab.com/accessibility/a11y`) and axe tooling.
+- [ ] Contrast: not covered in the guide text read; the docs defer to the design system's accessibility guidance and to axe tooling.
 
 ### B6. Internationalization
 
@@ -114,9 +115,10 @@ Source: `i18n/externalization.md` — `https://docs.gitlab.com/development/i18n/
 ### B7. Feature flags in the frontend
 
 - [ ] Backend pushes the flag with `push_frontend_feature_flag(:flag, actor)` (scoped per project/user); "When using a feature flag for UI elements, make sure to also use a feature flag for the underlying backend code." — `feature_flags/_index.md#frontend`
-- [ ] JS reads `gon.features.camelCaseName` (snake_case does not work). Flags without a definition file (`experiment`, `worker`, `undefined` types) must pass `type:`. — `feature_flags/_index.md#frontend`
-- [ ] In Vue, use `glFeatureFlagsMixin()` and `this.glFeatures.myFlag` (provided via `commons/vue.js`); tests provide `glFeatures` through `provide`. — `fe_guide/vue.md#accessing-feature-flags`
-- [ ] GraphQL queries gated with `@include(if:)` from `gon.features`; see B4. — `fe_guide/graphql.md#the-include-directive`
+- [ ] The frontend reads flag state through whatever channel the profile names (a page-bootstrap global, a GraphQL field, a prop), with the casing that channel requires. Flags without a definition file must declare their type. — `feature_flags/_index.md#frontend`
+- [ ] In Vue, flag state is read through the project's own mixin or injection rather than a
+  global lookup at the call site, and tests provide it the same way. — `fe_guide/vue.md#accessing-feature-flags`
+- [ ] GraphQL queries gated with `@include(if:)` from the flag state; see B4. — `fe_guide/graphql.md#the-include-directive`
 - [ ] "UI with mocked data must be behind a feature flag." — `code_review.md#for-authors-getting-changes-merged-faster`
 - [ ] Rails feature specs can assert `have_pushed_frontend_feature_flags(...)`. — `feature_flags/_index.md#have_pushed_frontend_feature_flags`
 
@@ -124,7 +126,7 @@ Source: `i18n/externalization.md` — `https://docs.gitlab.com/development/i18n/
 
 Source: `testing_guide/frontend_testing.md` — `https://docs.gitlab.com/development/testing_guide/frontend_testing/`; `fe_guide/style/vue.md#vue-testing`; `fe_guide/vue.md#testing-vue-components`
 
-- [ ] Jest specs in `spec/frontend` and `ee/spec/frontend`; named `${componentName}_spec.js`. — `#jest`, `#naming-unitcomponent-tests`
+- [ ] Component specs live in the project's frontend spec tree (and, if it separates a licensed code path, in the matching tree on that side); named `${componentName}_spec.js`. — `#jest`, `#naming-unitcomponent-tests`
 - [ ] **Don't test the library**: testing a computed that returns `.length` tests Vue; "if you are checking a `wrapper.vm` property, you should probably stop and rethink the test to check the rendered template instead." — `#dont-test-the-library`
 - [ ] **Don't test your mock**; mocks support the test, not the target. — `#dont-test-your-mock`
 - [ ] **Follow the user**: trigger via rendered markup and assert markup changes rather than calling methods; unit-test in isolation only for complex logic. — `#follow-the-user`
@@ -137,9 +139,9 @@ Source: `testing_guide/frontend_testing.md` — `https://docs.gitlab.com/develop
 - [ ] Selectors: best `findByRole`/`findByText`; good `findComponent`, `[data-testid]`, `findByTestId`; bad `{ ref }`, `.js-*`, `.gl-button`. Don't add `.js-*` classes just for tests. `data-testid` kebab-case. — `#how-to-query-dom-elements`
 - [ ] Jest matchers: `toBe` for primitives; specific matchers; avoid `toBeTruthy`/`toBeFalsy`; avoid `setImmediate`. — `#jest-best-practices`
 - [ ] Deterministic specs: fake `Date` and `Math.random`. — `#avoid-non-deterministic-specs`
-- [ ] **Snapshots**: "should **only** be used when other testing methods … do not cover the required use case." Use for protecting critical HTML structures or complex utility JSON output. Don't use when VTU assertions would work, to assert component logic, to predict data structures, or when the HTML comes from outside the repo (GitLab UI). "the cons of snapshot tests far outweigh the pros in general." — `#snapshots`, `#when-to-use`, `#when-not-to-use`
+- [ ] **Snapshots**: "should **only** be used when other testing methods … do not cover the required use case." Use for protecting critical HTML structures or complex utility JSON output. Don't use when direct assertions would work, to assert component logic, to predict data structures, or when the HTML comes from outside the repo (a third-party component library). "the cons of snapshot tests far outweigh the pros in general." — `#snapshots`, `#when-to-use`, `#when-not-to-use`
 - [ ] Apollo tests use the mock Apollo helper; prefer controlled mode. — `fe_guide/graphql.md#mocking-apollo-client`, `#mock-apollo-helper-controlled-resolution`
-- [ ] Feature tests only when spanning multiple components/pages, form submit with results elsewhere, or excessive mocking otherwise; default to MSW integration tests (EE-only, `ee/spec/frontend/msw_integration/`) over Capybara unless a real backend/DB/authz or FOSS-vs-EE difference is needed. — `#when-to-use-feature-tests`, `#when-not-to-use-feature-tests`, `#choose-the-right-feature-test-type`
+- [ ] Feature tests only when spanning multiple components or pages, a form submit with results elsewhere, or excessive mocking otherwise; default to request-mocked integration tests over full browser-driven ones unless a real backend, database, authorization path, or licensed-versus-base difference is needed. — `#when-to-use-feature-tests`, `#when-not-to-use-feature-tests`, `#choose-the-right-feature-test-type`
 - [ ] Page-entry `pages/**/index.js` files are exempt from unit tests and must stay thin ("import, read the DOM, instantiate, and nothing else"). — `fe_guide/performance.md#important-considerations`
 
 ### B9. Performance
@@ -170,7 +172,7 @@ Source: `fe_guide/style/javascript.md` — `https://docs.gitlab.com/development/
 - [ ] Named ES exports (default only for SFCs and Vuex mutation files); relative imports under two levels up, `~/` otherwise; no globals; no IIFEs; no top-level side effects in modules with `export`; no side effects in constructors. — `#es-module-syntax`, `#absolute-vs-relative-paths-for-modules`, `#global-namespace`, `#iifes`, `#side-effects`
 - [ ] Readiness signals for feature tests use scoped `data-*` attributes, not timer classes. — `#readiness-signals`
 - [ ] Error handling: generic message for 500s; `parseErrorMessage` with `Gitlab::Utils::ErrorMessage.to_user_facing` prefixing (not for API responses). — `#error-handling`
-- [ ] EE frontend code lives under `ee/app/assets/javascripts`, imported via `ee/` or `ee_else_ce/`. — `ee_features.md#separation-of-ee-code-in-the-frontend`
+- [ ] If the project separates a licensed or enterprise code path from the open one, frontend code on that path lives where its own convention puts it, and is imported through whatever aliasing that convention provides (including the fall-back-to-base form) rather than by reaching across the boundary with a relative path. `n/a` where there is no such split. — `ee_features.md#separation-of-ee-code-in-the-frontend`
 
 ### B11. Review routing specific to frontend MRs
 
@@ -185,21 +187,32 @@ Source: `fe_guide/style/javascript.md` — `https://docs.gitlab.com/development/
 
 ## Applicability by repo
 
-customers-gitlab-com is Vue 2.7 with Apollo Client 3, `@gitlab/ui`, Tailwind, Vite and Jest,
-and has no Pinia, no Vuex, no `gon`, no `pages/**/index.js` auto-entries and no
-`ee/` tree. Read the items above through that lens:
+The checklist above is written against a large Vue application with a page-bootstrap global
+for flags, a separate licensed code tree, store libraries, Storybook and an i18n pipeline. **Most projects
+have only some of that.** Read every item through the stack the profile declares, and record
+the ones the project does not have as `n/a` with the reason — never skip them silently.
 
-| Area | customers-gitlab-com |
+The profile is what says which apply. It should state: the framework and major version, the
+GraphQL client, the component library, the CSS approach, the bundler, the test runner and
+where its specs live, how feature flags reach the frontend, and whether the project has an
+i18n pipeline, a Storybook, or a separate enterprise tree.
+
+Worked example of how a profile narrows this (a project whose profile declares Vue 2.7,
+Apollo Client 3, a shared component library, Tailwind, Vite and Jest, with no store library,
+no page-bootstrap global, and no separate licensed tree):
+
+| Area | How the profile narrows it |
 |---|---|
-| B1 structure, B2 props | as written; the repo's `frontend` skill adds: every component has a `name`, typed props, no mutated props, no `$parent`/`$children`, no business logic in components, no direct DOM manipulation, no global event bus, components under 300 lines |
-| B3 state management | component data → provide/inject → Apollo cache as the single source of truth; flag any store introduction |
-| B4 GraphQL client | as written for fragments, `id` on every type, errors-as-data, pagination; `@feature_category` comments and `@client` CI validation are gitlab.com-only |
-| B5 accessibility | as written; Storybook axe job is gitlab.com-only, so check by reading and by the `chrome-devtools` a11y snapshot in Phase 5 |
-| B6 i18n | `n/a`; customers-dot UI copy is English-only, but the no-concatenation rule still keeps copy reviewable |
-| B7 feature flags | Unleash flags reach the frontend through GraphQL fields or props, not `gon.features`; check both states in Phase 5 |
-| B8 Jest testing | as written; specs under `spec/frontend/`, run `yarn jest <path>` |
-| B9 performance | bundle rules are gitlab.com-specific; still flag a new dependency in `package.json` |
-| B11 routing | Danger's map: `*.vue|js|scss` → frontend, `app/views/**` → frontend and backend |
+| B1 structure, B2 props | as written; the project's own frontend skill adds: every component has a `name`, typed props, no mutated props, no reaching into parent or child instances, no business logic in components, no direct DOM manipulation, no global event bus, components under 300 lines |
+| B3 state management | component data → provide/inject → the GraphQL client's cache as the single source of truth; flag any store introduction |
+| B4 GraphQL client | as written for fragments, `id` on every type, errors-as-data, pagination; the category-annotation comments and client-directive CI validation are specific to the upstream project |
+| B5 accessibility | as written; the automated axe job is specific to the upstream project, so check by reading and by an accessibility snapshot in Phase 5 |
+| B6 i18n | `n/a`; this project's UI copy is single-language, but the no-concatenation rule still keeps copy reviewable |
+| B7 feature flags | flags reach the frontend through GraphQL fields or props, not a page-bootstrap global; check both states in Phase 5 |
+| B8 test runner | as written; specs live where the profile says, run with the profile's command |
+| B9 performance | the upstream bundle rules do not apply; still flag a new dependency in the manifest |
+| B11 routing | the profile's category map decides which checklists a changed file pulls in |
 
-The repo's `.agents/skills/frontend/SKILL.md` is authoritative for conventions; load it for any
-customers-dot frontend change and record its anti-pattern table in the Phase 4 verdicts.
+If the project ships its own frontend skill or conventions doc, that is authoritative for
+conventions; load it for any frontend change and record its anti-pattern table in the
+Phase 4 verdicts.

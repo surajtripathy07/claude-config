@@ -18,8 +18,8 @@ Take the Understanding section's "ask" and "mechanism" and answer, with file:lin
   as such, and the question "why not at the source?" goes to the author unless the MR
   already answers it.
 - Are there other callers of the same faulty path that the fix does not reach? Grep for
-  the class, method, scope or GraphQL field; in customers-dot use the Orbit MCP for
-  callers and blast radius. List them; each one either is covered, is out of scope by the
+  the class, method, scope or API field, and use whatever history/callers tooling the
+  profile names (an MCP query template, a code-search service) for blast radius. List them; each one either is covered, is out of scope by the
   author's stated reasoning, or is a finding.
 
 ## 2. Does the mechanism hold?
@@ -41,8 +41,8 @@ Enumerate the input space the changed code faces and walk each through the new l
 hand or in the console (Phase 5 reproduces the happy path; this is the rest):
 
 - **Existing data.** Rows that predate the change: nil columns, legacy values, records in
-  states the new validation would reject. The GitLab acceptance checklist's "existing data
-  may be surprisingly varied" is this item. Query the dev database or ask for a count from
+  states the new validation would reject. The acceptance checklist's "existing data may be
+  surprisingly varied" item (see `backend.md`) is this check. Query the dev database or ask for a count from
   the replica.
 - **Boundaries.** Empty collections, zero quantities, the first and last element, maximum
   sizes, unicode and whitespace in strings, time zones and month ends for dates, the
@@ -50,12 +50,13 @@ hand or in the console (Phase 5 reproduces the happy path; this is the rest):
 - **Every branch of the new conditionals**, including the `else` that was already there:
   is the old behaviour preserved for the inputs that used to take it?
 - **Both flag states.** With the flag off, is the diff a no-op for every caller? With it on,
-  does anything outside the intended audience change (the Dedicated / Self-Managed /
-  GitLab.com split, reseller vs direct, trial vs paid)?
-- **Concurrency and retries.** Two requests at once, a Sidekiq retry, a webhook replay:
+  does anything outside the intended audience change (whatever segments this product has —
+  deployment types, sales channels, plan tiers, trial versus paid)?
+- **Concurrency and retries.** Two requests at once, a background-job retry, a webhook replay:
   does the change create a duplicate, a lost update, or a half-applied state?
-- **Failure paths.** External call fails (Zuora, Salesforce, GitLab API): what does the
-  user see, what is logged, is the error swallowed?
+- **Failure paths.** A call to any external system the change depends on fails (a billing
+  provider, a CRM, another service's API): what does the user see, what is logged, is the
+  error swallowed?
 
 Each input either produces the expected result (say how you know), produces a wrong result
 (finding, with the reproduction), or could not be determined (question).
@@ -63,12 +64,13 @@ Each input either produces the expected result (say how you know), produces a wr
 ## 4. Consequences outside the diff
 
 - **Callers and dependents** of changed public methods, scopes, serializers, GraphQL
-  fields: found by grep and Orbit, each checked for the new contract.
+  fields: found by grep and whatever history/callers tooling the profile names, each
+  checked for the new contract.
 - **Persisted or cached shapes.** A changed enum, JSON column, cache key, or Sidekiq
   argument: old values in the database or queue must still be readable by the new code, and
   new values by the old code during deploy.
-- **API and UI contracts.** Anything a client (frontend, GitLab.com, a script) reads: is
-  the change additive, or does it rename or remove?
+- **API and UI contracts.** Anything a client reads (this project's own frontend, another
+  service, a script): is the change additive, or does it rename or remove?
 - **Security boundary.** Does the change widen who can do or see something? Follow the
   authorization from the entry point to the data.
 - **Operational.** New log lines or metrics needed to know the change works in
@@ -76,7 +78,7 @@ Each input either produces the expected result (say how you know), produces a wr
 
 ## 5. Do the tests prove the claim?
 
-For each behaviour the MR claims, name the spec example that fails without the change. Run
+For each behaviour the change claims, name the spec example that fails without it. Run
 the changed specs against the base branch's application code when cheap (stash the app
 hunk, run the spec, expect red) for the one or two central claims. Tests that pass with and
 without the change are a finding. Also note what the tests assume: stubbed collaborators
@@ -86,7 +88,7 @@ that hide a real integration, factories that never produce the legacy data from 
 
 State the one or two other ways this could have been done and why the author's choice is
 better or worse for this ask. If you cannot name an alternative, you have not understood
-the design space yet; go back to § 1. If the author's MR already discusses alternatives,
+the design space yet; go back to § 1. If the description already discusses alternatives,
 check the reasoning rather than repeating it.
 
 ## Output

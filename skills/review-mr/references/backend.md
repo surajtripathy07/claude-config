@@ -1,8 +1,8 @@
 ---
-Distilled 2026-09-07 from gitlab-org/gitlab `doc/development/` at commit 718b5cb265bf (2026-08-31), read from ~/repo/gitlab-development-kit/gitlab. Source of truth is the docs, not this file: when an item fires during a review, open the local doc file it cites (or the public URL) and read that section in full before recording a verdict. Refresh this file when the docs change; record the new commit here.
+These reference files distill GitLab's public developer documentation (docs.gitlab.com) into a portable review checklist — freely readable, sourced, and not specific to any one project's private code. The distillation is pinned at docs commit `<sha>` — refresh this file when the docs change and record the new commit here. Source of truth is those docs, not this file: when an item fires during a review, open the doc it cites and read that section in full before recording a verdict. Where the project under review differs, the profile says so — see "Applicability" at the end.
 ---
 
-# General and backend review checklists (gitlab-org/gitlab docs)
+# General and backend review checklists (distilled from public developer docs)
 
 **Source pointer convention.** `doc/development/<path>.md#<anchor>` maps to `https://docs.gitlab.com/development/<path>/#<anchor>`. Files named `_index.md` map to the directory URL (for example `doc/development/fe_guide/_index.md` → `https://docs.gitlab.com/development/fe_guide/`).
 
@@ -19,11 +19,11 @@ Preamble (verbatim): "This checklist encourages the authors, reviewers, and main
 1. You have self-reviewed this MR per code review guidelines.
 2. The code follows the [software design guidelines](software_design.md).
 3. Ensure [automated tests](testing_guide/_index.md) exist following the [testing pyramid](testing_guide/testing_levels.md). Add missing tests or create an issue documenting testing gaps.
-4. You have considered the technical impacts on GitLab.com, Dedicated, and self-managed.
+4. You have considered the technical impacts on every deployment model the product supports (multi-tenant hosted, single-tenant hosted, customer-operated).
 5. You have considered the impact of this change on the frontend, backend, and database portions of the system where appropriate and applied the `~ux`, `~frontend`, `~backend`, and `~database` labels accordingly.
 6. You have tested this MR in [all supported browsers](../install/requirements.md#supported-web-browsers), or determined that this testing is not needed.
 7. You have confirmed that this change is [backwards compatible across updates](multi_version_compatibility.md), or you have decided that this does not apply.
-8. You have properly separated [EE content](ee_features.md) (if any) from FOSS. Consider [running the CI pipelines in a FOSS context](ee_features.md#run-ci-pipelines-in-a-foss-context).
+8. You have properly separated licensed or paid-tier content (if any) from the base code, per the project's own convention. Consider running the CI pipelines in the unlicensed configuration as well. — see § C2
 9. You have considered that existing data may be surprisingly varied. For example, if adding a new model validation, consider making it optional on existing data.
 10. You have fixed flaky tests related to this MR, or have explained why they can be ignored. Flaky tests have error `Flaky test '<path/to/test>' was found in the list of files changed by this MR.` but can be in jobs that pass with warnings.
 
@@ -35,12 +35,12 @@ Preamble (verbatim): "This checklist encourages the authors, reviewers, and main
 3. You have considered the availability and reliability risks of this change.
 4. You have considered the scalability risk based on future predicted growth.
 5. You have considered the performance, reliability, and availability impacts of this change on large customers who may have significantly more data than the average customer.
-6. You have considered the performance, reliability, and availability impacts of this change on customers who may run GitLab on the [minimum system](../install/requirements.md).
+6. You have considered the performance, reliability, and availability impacts of this change on customers running the product on the minimum supported system.
 7. You are confident that this change is compatible with the [Cells architecture](cells/_index.md). For more information, see [Cells development principles](cells/_index.md#cells-development-principles).
 
 #### Observability instrumentation — `code_review.md#observability-instrumentation`
 
-1. You have included enough instrumentation to facilitate debugging and proactive performance improvements through observability. See [example](https://gitlab.com/gitlab-org/gitlab/-/issues/346124#expectations) of adding feature flags, logging, and instrumentation.
+1. You have included enough instrumentation to facilitate debugging and proactive performance improvements through observability — feature flags, logging, and metrics. When this fires, link a real example from the project's own issue tracker.
 
 #### Documentation — `code_review.md#documentation`
 
@@ -51,18 +51,18 @@ Preamble (verbatim): "This checklist encourages the authors, reviewers, and main
 
 #### Security — `code_review.md#security`
 
-1. You have confirmed that if this MR contains changes to processing or storing of credentials or tokens, authorization, and authentication methods, or other items described in [the security review guidelines](https://handbook.gitlab.com/handbook/security/product-security/security-platforms-architecture/application-security/appsec-reviews/#what-should-be-reviewed), you have added the `~security` label and you have `@`-mentioned `@gitlab-com/gl-security/appsec`.
-2. You have reviewed the documentation regarding [internal application security reviews](https://handbook.gitlab.com/handbook/security/product-security/security-platforms-architecture/application-security/appsec-reviews/#internal-application-security-reviews) for **when** and **how** to request a security review and requested a security review if this is warranted for this change.
-3. If there are security scan results that are blocking the MR (due to the [merge request approval policies](https://gitlab.com/gitlab-com/gl-security/security-policies)):
-   - For true positive findings, they should be corrected before the merge request is merged. This will remove the AppSec approval required by the merge request approval policy.
-   - For false positive findings, something that should be discussed for risk acceptance, or anything questionable, ping `@gitlab-com/gl-security/appsec`.
+1. You have confirmed that if this change touches the processing or storing of credentials or tokens, authorization, or authentication methods — or anything else the project's security review guidelines list as reviewable — you have applied the project's security label and @-mentioned its application-security group.
+2. You have read the project's own guidance on **when** and **how** to request an application security review, and requested one if this change warrants it.
+3. If security scan results are blocking the change (due to the project's approval policies):
+   - True positives should be corrected before merge, which clears the security approval the policy requires.
+   - For false positives, anything needing a risk-acceptance discussion, or anything questionable, ping the project's application-security group.
 
 #### Deployment — `code_review.md#deployment`
 
 1. You have considered using a feature flag for this change because the change may be high risk.
 2. If you are using a feature flag, you plan to test the change in staging before you test it in production, and you have considered rolling it out to a subset of production customers before rolling it out to all customers.
-   - [When to use a feature flag](https://handbook.gitlab.com/handbook/product-development/how-we-work/product-development-flow/feature-flag-lifecycle/#when-to-use-feature-flags)
-3. You have informed the Infrastructure department of a default setting or new setting change per [definition of done](contributing/merge_request_workflow.md#definition-of-done), or decided that this is unnecessary.
+   - See the project's own guidance on when a feature flag is warranted.
+3. You have informed whoever owns infrastructure of a default-setting or new-setting change per the project's definition of done, or decided that this is unnecessary.
 
 #### Compliance — `code_review.md#compliance`
 
@@ -73,12 +73,12 @@ Preamble (verbatim): "This checklist encourages the authors, reviewers, and main
 Source: `code_review.md#the-responsibility-of-the-reviewer` — `https://docs.gitlab.com/development/code_review/#the-responsibility-of-the-reviewer`
 
 - "Reviewers are responsible for reviewing the specifics of the chosen solution."
-- **Turnaround:** "If unavailable within the [Review-response SLO](https://handbook.gitlab.com/handbook/engineering/workflow/code-review/#review-response-slo), inform the author, find a replacement using the [Review Workload Dashboard](https://gitlab-org.gitlab.io/gitlab-roulette/), and assign them." (The numeric SLO is defined in the handbook, not in this doc.)
-- **When to approve:** "When confident the MR meets all [contribution acceptance criteria](contributing/merge_request_workflow.md#contribution-acceptance-criteria): 1. Select **Approve**. 2. `@` mention the author to notify them. 3. Request a review from a maintainer with [domain expertise](#domain-experts), or follow the [Reviewer roulette](#reviewer-roulette) suggestion."
+- **Turnaround:** if unavailable within the project's review-response service-level objective, inform the author, find a replacement (using whatever reviewer-workload dashboard or roulette the profile names), and assign them. The numeric objective lives in the project's own handbook, not in a code doc.
+- **When to approve:** "When confident the MR meets all [contribution acceptance criteria](contributing/merge_request_workflow.md#contribution-acceptance-criteria): 1. Select **Approve**. 2. `@` mention the author to notify them. 3. Request a review from a maintainer with [domain expertise](#domain-experts), or follow the reviewer-assignment tooling's suggestion."
 
 Source: `code_review.md#the-responsibility-of-the-maintainer`
 
-- Maintainers "are responsible for the overall health, quality, and consistency of the GitLab codebase. Their reviews focus on architecture, code organization, separation of concerns, tests, DRYness, consistency, and readability."
+- Maintainers "are responsible for the overall health, quality, and consistency of the codebase. Their reviews focus on architecture, code organization, separation of concerns, tests, DRYness, consistency, and readability."
 - "Maintainers are the DRI for ensuring MRs reasonably meet acceptance criteria."
 - "If a maintainer feels that an MR is not able to merged, it is their responsibility to say so. The maintainer is also the expert adviser who knows when to pull in others for a second opinion."
 - "When a maintainer approves an MR, they are taking responsibility alongside the author. This means that when there is a production incident, the maintainer may get paged to help resolve issues."
@@ -94,7 +94,7 @@ Source: `code_review.md#reviewing-a-merge-request` — `https://docs.gitlab.com/
 - [ ] Identify ways to simplify the code while still solving the problem.
 - [ ] **Assume alternatives were considered:** "Offer alternative implementations, but assume the author already considered them. ('What do you think about using a custom validator here?')"
 - [ ] Seek to understand the author's perspective.
-- [ ] "Check out the branch and test the changes locally. For MRs requiring significant GDK modifications, consider requesting screenshots, videos, or domain-expert verification instead. Your testing might result in opportunities to add automated tests."
+- [ ] Check out the branch and test the changes locally. For changes requiring significant modifications to your local dev environment, consider requesting screenshots, videos, or domain-expert verification instead. Your testing might result in opportunities to add automated tests.
 - [ ] **Ask rather than assume:** "If you don't understand a piece of code, _say so_."
 - [ ] **Conventional Comments / non-blocking convention:** "Use the [Conventional Comment format](https://conventionalcomments.org#format) to convey intent. Mark non-mandatory suggestions as (`**non-blocking:**`). When only non-blocking suggestions remain, move the MR to the next stage rather than waiting."
 - [ ] "Ensure there are no open dependencies. Check linked issues for blockers. If blocked by open MRs, set an MR dependency."
@@ -113,7 +113,7 @@ Source: `code_review.md#participating-in-code-review`
 - "Explain why the code exists, not just what it does."
 - "Try to respond to every comment. Only resolve threads you have fully addressed."
 - "Push feedback-based changes as isolated commits. Squashing commits can make it harder for your reviewer to quickly see changes."
-- "Address all GitLab Duo review comments before requesting a review from human reviewers."
+- Address the automated reviewer's comments (see `bot-triage.md`) before requesting a review from human reviewers.
 
 Source: `code_review.md#finding-the-right-balance` — approve vs request changes
 
@@ -131,33 +131,33 @@ Source: `code_review.md#the-responsibility-of-the-merge-request-author` — esca
 - Author must add MR diff comments for: added linting rules; added libraries; links to parent classes/methods where not obvious; benchmarking results; potentially insecure code.
 - "Request maintainer reviews only when tests pass. If tests are failing, explain why in a comment."
 
-Source: `code_review.md#domain-experts` — how to find one: "View eligible approvers" in the approvals widget (CODEOWNERS), the stage/group team list, the engineering projects page, `git log <file>`, and the MRs that previously touched the files. "Due to designer capacity limits, areas not supported by a Product Designer will no longer require a UX review unless it is a community contribution."
+Source: `code_review.md#domain-experts` — how to find one: the eligible-approver list the host computes from the code-ownership file, the owning team's roster, `git log <file>`, and the change requests that previously touched the files. "Due to designer capacity limits, areas not supported by a Product Designer will no longer require a UX review unless it is a community contribution."
 
 ### A4. Approval guidelines — which change needs which specialist
 
 Source: `code_review.md#approval-guidelines` — `https://docs.gitlab.com/development/code_review/#approval-guidelines`
 
-Context (verbatim): "For small, straightforward changes, you can skip the reviewer step and go directly to a maintainer." Examples: fixing a typo/small copy; a tiny refactor that doesn't change behavior; removing a feature flag default-enabled for more than one month; removing unused methods or classes; a well-understood logic change under five lines. "Otherwise, have a reviewer in each category the MR touches before passing to a maintainer." "After the reviewer approves, a maintainer reviews and merges. The last required approver merges." "For CODEOWNERS-required approvals, seek domain-specific approvals before generic ones."
+Context (verbatim): "For small, straightforward changes, you can skip the reviewer step and go directly to a maintainer." Examples: fixing a typo/small copy; a tiny refactor that doesn't change behavior; removing a feature flag default-enabled for more than one month; removing unused methods or classes; a well-understood logic change under five lines. "Otherwise, have a reviewer in each category the MR touches before passing to a maintainer." "After the reviewer approves, a maintainer reviews and merges. The last required approver merges." "For code-ownership-required approvals, seek domain-specific approvals before generic ones."
 
 | If your merge request includes | It must be approved by a |
 |---|---|
 | `~backend` changes <sup>1</sup> | Backend maintainer. |
 | `~database` migrations or changes to expensive queries <sup>2</sup> | Database maintainer. Refer to the [database review guidelines](database_review.md). |
-| `~workhorse` changes | Workhorse maintainer. |
+| Changes to a separate companion service the project ships (a reverse proxy, a storage service) | That service's maintainer. |
 | `~frontend` changes <sup>1</sup> | Frontend maintainer. |
-| `~UX` user-facing changes <sup>3</sup> | Product Designer. Refer to the [design and user interface guidelines](contributing/design.md). |
-| Adding a new JavaScript library <sup>1</sup> | Frontend Design System member if the library significantly increases the bundle size; a legal department member if the license hasn't been approved for use in GitLab (see [licensing.md](licensing.md)). |
-| A new dependency or a file system change | Distribution team member; for RubyGems, request an [AppSec review](gemfile.md#request-an-appsec-review). |
-| `~documentation` or `~UI text` changes | Technical writer based on assignments in the appropriate DevOps stage group. |
+| User-facing changes <sup>3</sup> | A product designer. Refer to the project's design and user-interface guidelines. |
+| Adding a new JavaScript library <sup>1</sup> | A design-system owner if the library significantly increases the bundle size; whoever owns license approval if the licence has not been approved for use. |
+| A new dependency or a file system change | Whoever owns packaging and distribution; for new language-package dependencies, request a security review. |
+| Documentation or UI-text changes | A technical writer, per the project's per-area assignments. |
 | Changes to development guidelines | Follow the [review process](development_processes.md#development-guidelines-review). |
-| Changes to AI instruction files under `.ai/` | AI harness DRI. See [ai_instruction_files_review.md](ai_instruction_files_review.md). |
-| End-to-end **and** non-end-to-end changes <sup>4</sup> | Software Engineer in Test. |
-| Only End-to-end changes <sup>4</sup> **or** if the MR author is a Software Engineer in Test | Quality maintainer. |
+| Changes to agent instruction files | Whoever owns the agent harness. See `ai_instruction_files_review.md`. |
+| End-to-end **and** non-end-to-end changes <sup>4</sup> | A test engineer. |
+| Only end-to-end changes <sup>4</sup> **or** if the author is a test engineer | A quality maintainer. |
 | A new or updated application limit | Product manager. |
-| Analytics Instrumentation (telemetry or analytics) changes | Analytics Instrumentation engineer. |
-| A new service to GitLab (Puma, Sidekiq, Gitaly are examples) | Product manager. See [adding_service_component.md](adding_service_component.md). |
-| Changes related to authentication | Manage:Authentication. File patterns are in the `Authentication` section of `CODEOWNERS`. |
-| Changes related to custom roles or policies | Manage:Authorization Engineer. |
+| Telemetry or analytics-instrumentation changes | An instrumentation engineer. |
+| A new long-running service component (an app server, a job runner, a storage service) | Product manager, plus whoever owns deployment of new components. |
+| Changes related to authentication | The team owning authentication; the project's code-ownership file lists the file patterns. |
+| Changes related to roles or authorization policies | The team owning authorization. |
 
 Footnotes (verbatim in substance):
 
@@ -166,7 +166,7 @@ Footnotes (verbatim in substance):
 3. "User-facing changes include both visual changes (regardless of how minor), and changes to the rendered DOM which impact how a screen reader may announce the content. Groups that do not have dedicated Product Designers do not require a Product Designer to approve feature changes, unless the changes are community contributions."
 4. "End-to-end changes include all files in the `qa` directory."
 
-Security assistance: "For security assistance, include `@gitlab-com/gl-security/appsec`." (`code_review.md#getting-your-merge-request-reviewed-approved-and-merged`)
+Security assistance: for security assistance, include the project's application-security group as a reviewer. (`code_review.md#getting-your-merge-request-reviewed-approved-and-merged`)
 
 ### A5. MR description: "what and why" and testing steps
 
@@ -179,7 +179,7 @@ Security assistance: "For security assistance, include `@gitlab-com/gl-security/
   3. Changelog entry added, if necessary.
   4. Self-compiled install steps added to `doc/install/self_compiled/_index.md` in the same MR if required.
   5. Upgrade-from-source steps added to `doc/update/upgrading_from_source.md` if required.
-- `contributing/merge_request_workflow.md#ui-changes`: "Use available components from the GitLab Design System, Pajamas." "The MR must include 'Before' and 'After' screenshots if UI changes are made." "If the MR changes CSS classes, include the list of affected pages, which can be found by running `grep css-class ./app -R`."
+- `contributing/merge_request_workflow.md#ui-changes`: use the existing components from the project's design system rather than new one-off markup. The change "must include 'Before' and 'After' screenshots if UI changes are made". If it changes CSS classes, include the list of affected pages (grep the class across the view tree).
 - `contributing/merge_request_workflow.md#commit-messages-guidelines` (template): "Use the body to explain what and why vs. how"; "Explain why this change is being made"; imperative subject, max 72 chars, no emojis; "Commits that change 30 or more lines across at least 3 files should describe these changes in the commit body."
 - `code_review.md#performance-reliability-and-availability` item 2 requires "information for database reviewers in the MR description" (`database_review.md#required`).
 - `graphql_guide/reviewing.md#description-with-sample-query`: "Ensure that the description includes a sample query with setup instructions."
@@ -204,20 +204,20 @@ Source: `contributing/merge_request_workflow.md#contribution-acceptance-criteria
 
 Source: `contributing/merge_request_workflow.md#definition-of-done`
 
-- Verified working in production on GitLab.com; for Self-Managed / Dedicated; supporting Geo via the self-service framework; compatible with Cells (compute scoped to a single organization; new customer-owned rows have a sharding key; no customer-owned resources outside an organization; organization data remains migratable). "If a regression occurs, we prefer you revert the change."
+- Verified working in production, and for every other deployment model the product supports; compatible with the project's replication and tenant-partitioning architecture if it has one (compute scoped to a single tenant; new tenant-owned rows carry a partitioning key; no tenant-owned resources outside a tenant; tenant data remains migratable). "If a regression occurs, we prefer you revert the change."
 - `#functionality`: performance guidelines, secure coding guidelines, rate limit guidelines followed; documented in `/doc`; shell command guidelines if executing shell/reading files; observability instrumentation; migrations executed on a fresh DB before review (and again after large review changes); new validations on existing models must be backwards compatible (check existing rows via `#database` Slack, roll out behind a feature flag); consider self-managed upgrade paths and required stops.
 - `#testing`: unit/integration/system tests pass on CI; peer testing recommended for high-risk changes; regressions covered with tests; Capybara tests written reliably; E2E tests if required; tested in a review app where appropriate; "Code affected by a feature flag is covered by automated tests with the feature flag enabled and disabled, or both states are tested as part of peer member testing or as part of the rollout plan"; tests for complex migrations.
 - `#approval`: evaluated against the MR acceptance checklist; Infrastructure issue if default/new setting; agreed rollout plan; "Reviewed by relevant reviewers, and all concerns are addressed for Availability, Regressions, and Security. Documentation reviews should take place as soon as possible, but they should not block a merge request."; at least 1 approval plus any required by Approval guidelines; merged by a project maintainer.
 
-### A7. GitLab-specific concerns, merging, and community MRs
+### A7. Platform-wide concerns, merging, and outside-contributor changes
 
 Source: `code_review.md#gitlab-specific-concerns`
 
-1. Query changes tested for GitLab.com scale (see `database_review.md`).
-2. Database migrations must be reversible, performant at GitLab.com scale, and the correct migration type (`migration_style_guide.md#choose-an-appropriate-migration-type`).
+1. Query changes tested at production scale (see `database_review.md` and `database.md` here).
+2. Database migrations must be reversible, performant at production scale, and the correct migration type (`migration_style_guide.md#choose-an-appropriate-migration-type`).
 3. "Sidekiq workers cannot change in a backwards-incompatible way" (`sidekiq/compatibility_across_updates.md`).
 4. "Cached values may persist across releases. If you are changing the type a cached value returns … change the cache key at the same time."
-5. Settings added as a last resort (`architecture.md#adding-a-new-setting-in-gitlab-rails`).
+5. New application settings added only as a last resort (`architecture.md#adding-a-new-setting-in-gitlab-rails`).
 6. "File system access is not possible in a cloud-native architecture. Ensure that we support object storage for any file storage."
 
 Source: `code_review.md#merging-a-merge-request`
@@ -232,47 +232,60 @@ Source: `code_review.md#community-contributions`
 - "Review all changes thoroughly for malicious code before starting a merged results pipeline."
 - "Scrutinize new dependencies (e.g. `Gemfile.lock`, `yarn.lock`). They could introduce malicious packages."
 - "Review links and images, especially in documentation MRs."
-- "When in doubt, ask `@gitlab-com/gl-security/appsec` to review before starting any pipeline."
+- When in doubt, ask the project's application-security group to review before starting any pipeline.
 
 ---
 
-## Part C — Backend review specifics for gitlab.com
+## Part C — Backend review specifics (upstream monolith; narrow via the profile)
 
 ### C1. Feature flags
 
 Source: `doc/development/feature_flags/_index.md` — `https://docs.gitlab.com/development/feature_flags/`
 
-- [ ] **Definition YAML** exists in `config/feature_flags/<type>/` or `ee/config/feature_flags/<type>/`, created with `bin/feature-flag` (`--ee` for EE-only). Required fields: `name`, `description`, `type`, `default_enabled`, `introduced_by_url`, `milestone`, `group`. Optional: `feature_issue_url`, `rollout_issue_url`, `log_state_changes`. — `#feature-flag-definition-and-validation`, `#create-a-new-feature-flag`
-- [ ] Validation rules: flag must be known (defined), not defined in both FOSS and EE, have an owner; undefined flags allowed only for `experiment`, `worker`, `undefined` types with a consistent `type:`. — `#feature-flag-definition-and-validation`
-- [ ] "All newly-introduced feature flags must be **disabled by default**." — `#create-a-new-feature-flag`, `#feature-flags-in-gitlab-development`
-- [ ] **Rollout issue requirement by type** (`#types-of-feature-flags`): `gitlab_com_derisk` — **Must** have a rollout issue from the Feature Flag Roll Out template; max lifespan 2 months; `default_enabled: true` must not be set. `beta` — **Must** have a rollout issue; max 6 months; may be `default_enabled: true`; must be documented. `wip` — likely no rollout issue; max 4 months; must transition type before enabling. `ops` — likely no rollout issue; unlimited but re-evaluated every 12 months; must be documented and have a runbook. `experiment` — should have a rollout issue from the Experiment Rollout template; max 6 months; must not default on.
-- [ ] Type matches usage ("Most feature flags used at GitLab are of the `gitlab_com_derisk` type"). — `#types-of-feature-flags`
+- [ ] **A flag definition exists** wherever the project declares flags (an in-repo definition file, or a record in an external flag service — the profile says which), created with the project's own generator if it has one. Typical required fields: name, description, type, default state, the change request that introduced it, milestone, and owning group. Optional: a feature issue, a rollout issue, state-change logging. — `#feature-flag-definition-and-validation`, `#create-a-new-feature-flag`
+- [ ] Validation rules: the flag must be known (defined exactly once, not duplicated across a licensed and a base definition) and have an owner; undefined flags are acceptable only for the narrow types the project allows, with a consistent type declaration. — `#feature-flag-definition-and-validation`
+- [ ] "All newly-introduced feature flags must be **disabled by default**." — `#create-a-new-feature-flag`
+- [ ] **Rollout issue requirement by flag type** (`#types-of-feature-flags`). A mature flag taxonomy distinguishes: a *de-risking* flag for a production rollout — **must** have a rollout issue, short lifespan (about 2 months), never shipped default-on; a *beta* flag — **must** have a rollout issue, about 6 months, may be default-on, must be documented; a *work-in-progress* flag — no rollout issue, about 4 months, must change type before being enabled; an *operational* flag — no rollout issue, long-lived but re-evaluated yearly, documented and with a runbook; an *experiment* flag — should have a rollout issue, about 6 months, never default-on. Check the change against whichever of these the project defines.
+- [ ] The declared type matches actual usage; most flags in practice are de-risking flags for a production rollout. — `#types-of-feature-flags`
 - [ ] "Feature flags **must** be used in the MR that introduces them" (otherwise `rspec:feature-flags` breaks master). — `#risk-of-a-broken-master-main-branch`
 - [ ] Naming: snake_case, descriptive, no `_mvc`/`_alpha`/`_beta`, avoid `disable` (prefer `hide_`, `remove_`, `disallow_`). — `#naming-new-flags`
-- [ ] MRs that introduce, change state of, or remove a flag carry the `~"feature flag"` label. — `#feature-flags-in-gitlab-development`
+- [ ] Changes that introduce, change the state of, or remove a flag carry the project's feature-flag label.
 - [ ] Not a substitute for settings; not for external API consumers; not supported on Dedicated. — `#do-not-use-feature-flags-for-long-lived-settings`, `#do-not-use-feature-flags-in-external-api-consumers`
 - [ ] Actor scoping: check flags with an actor (project/group/user) and avoid unnecessary queries just to obtain the actor. — `#feature-actors`
 - [ ] Changelog: none for changes behind a default-off flag; required for default-on or flag removal/flip; DB migrations always get one. — `#changelog`
 - [ ] Tests cover both states; flags are enabled by default in tests, so the disabled path goes in a separate `context` with `stub_feature_flags(flag: false)`. — `#feature-flags-in-tests`
-- [ ] Flag removal MR: value change is the only change; legacy code removed after all mentions are gone. — `#feature-flags-in-gitlab-development`
-- [ ] Optional `.patch` file alongside the YAML enables automated removal by `gitlab-housekeeper`. — `#optionally-add-a-patch-file-for-automated-removal-of-feature-flags`
+- [ ] Flag-removal change: the value change is the only change; legacy code is removed once all mentions are gone.
+- [ ] If the project has automated flag-removal tooling, the definition carries whatever companion file that tooling needs. — `#optionally-add-a-patch-file-for-automated-removal-of-feature-flags`
 - [ ] New Sidekiq workers scheduled from HTTP should be behind a flag (no canary Sidekiq). — `sidekiq/compatibility_across_updates.md#adding-new-workers`
 
-### C2. EE / FOSS separation
+### C2. Licensed / tiered code separation
 
-Source: `doc/development/ee_features.md` — `https://docs.gitlab.com/development/ee_features/`
+Applies only if the project separates a licensed (paid-tier, enterprise, or hosted-only)
+code path from its open or base one. If it does not, record this section `n/a`. The profile
+says whether it does and what the convention is; the items below are the review points that
+hold whatever the directory layout.
 
-- [ ] "Put all Enterprise Edition (EE) inside the `ee/` top-level directory. The rest of the code must be as close to the Community Edition (CE) files as possible." "All `ee/` code must have corresponding tests in `ee/`." — top of page
-- [ ] Licensed features are registered in `ee/app/models/gitlab_subscriptions/features.rb` (`PREMIUM_FEATURES`, `ULTIMATE_FEATURES`, `GLOBAL_FEATURES`) and guarded with `licensed_feature_available?(:name)` (project/group) or `License.feature_available?(:name)` (instance). — `#implement-a-new-ee-feature`, `#guard-your-ee-feature`
-- [ ] EE-only classes go in `ee/app/...` without the `EE` namespace; CE extensions go in `ee/app/**/ee/...` as `::EE::Foo` modules injected with `prepend_mod` / `extend_mod` / `include_mod` (or `*_mod_with('Name')`) on the **last line** of the CE file. "Do not use methods such as `prepend`, `extend`, and `include`." — `#ee-only-features`, `#extend-ce-features-with-ee-backend-code`
-- [ ] Overrides use `extend ::Gitlab::Utils::Override` and `override :method`; refactor CE into hook/template methods rather than overriding methods with guard clauses; prefer self-descriptive wrapper methods. — `#overriding-ce-methods`, `#use-self-descriptive-wrapper-methods`
-- [ ] Specs: EE-only class → `ee/spec/models/foo_spec.rb`; EE extension → `ee/spec/models/ee/foo_spec.rb` with `RSpec.describe User`; enable features with `stub_licensed_features(...)`. — `#testing-ee-only-backend-features`, `#testing-ee-features-based-on-ce-features`
-- [ ] GraphQL: EE mutations/resolvers/types in `ee/app/graphql/...`; overrides in `ee/app/graphql/ee/...` inside a `prepended do` block. — `#code-in-appgraphql`
-- [ ] Views use `render_if_exists` / `render_ce`; routes, controllers, initializers, `lib/`, `lib/api/` each have their own patterns. — `#code-in-appviews`, `#code-in-configroutes`, `#code-in-appcontrollers`, `#code-in-lib`, `#code-in-libapi`
-- [ ] SaaS-only: `Gitlab::Saas.feature_available?(:name)` with the feature added to `FEATURES` in `ee/lib/gitlab/saas.rb`; "`Gitlab::Saas.feature_available?` must not appear in CE." — `#saas-only-feature`, `#do-not-use-saas-only-features-for-functionality-in-ce`
-- [ ] Dedicated: `Gitlab::Dedicated.feature_available?(:name)`; do not call `Gitlab::CurrentSettings.gitlab_dedicated_instance?` in app code (RuboCop `Gitlab/AvoidGitlabDedicatedInstanceChecks`), migrations excepted. — `#why-dedicated-code-must-be-in-ee`, `#exceptions-for-database-migrations`
-- [ ] Consider running the pipeline in a FOSS context. — `#run-ci-pipelines-in-a-foss-context`; `code_review.md#quality` item 8
-- [ ] Frontend EE files under `ee/app/assets/javascripts`, imported via `ee/` or `ee_else_ce/`. — `#separation-of-ee-code-in-the-frontend`
+- [ ] **The boundary is respected.** Licensed-only code lives wherever the project's
+  convention puts it, and the base code stays as close to its unlicensed form as possible —
+  no licensed logic leaking into shared files.
+- [ ] **Every licensed code path has tests on the same side of the boundary**, and the specs
+  enable the licensed feature explicitly rather than relying on the environment's default.
+- [ ] **Features are gated by a declared capability, not an ad-hoc check.** The feature is
+  registered in whatever list or catalogue the project uses for tier entitlements and read
+  through that single accessor, so one grep finds every gate.
+- [ ] **Extensions of base behaviour use the project's declared extension mechanism**
+  (a module injected at a fixed point, an explicitly marked override) rather than ad-hoc
+  monkey-patching, and overrides are declared as overrides so a removed base method fails
+  loudly instead of silently.
+- [ ] **Prefer refactoring the base code into a hook or template method** over wrapping it
+  in guard clauses from the licensed side; prefer self-descriptive wrapper methods.
+- [ ] **Deployment-model gates** (hosted-only, single-tenant-only, self-managed-only) go
+  through the project's own capability accessor for that model, not a direct settings or
+  environment read scattered through application code.
+- [ ] **The unlicensed configuration still builds and passes.** If the project can be built
+  or run without the licensed tree, consider running the pipeline in that configuration.
+- [ ] **Frontend licensed code follows the same boundary and import convention** as the
+  backend, so a reader can tell which tier a component belongs to from its location.
 
 ### C3. Sidekiq workers
 
@@ -280,7 +293,7 @@ Sources: `doc/development/sidekiq/_index.md`, `idempotent_jobs.md`, `worker_attr
 
 - [ ] `include ApplicationWorker`, not `Sidekiq::Worker`. — `_index.md#applicationworker`
 - [ ] Cells: "All Sidekiq jobs should be scoped to a single organization"; cross-organization jobs only if both a recurring cron job **and** idempotent. — `_index.md#cells-compatibility`
-- [ ] Sharding: Sidekiq API calls go through `Sidekiq::Client.via(pool)` using `Gitlab::SidekiqSharding::Router.get_shard_instance`; `allow_unrouted_sidekiq_calls` only with a justifying comment for non-GitLab.com code. — `_index.md#sharding`
+- [ ] Sharding: if the job backend is sharded, enqueue calls go through the project's shard router rather than the default client, and any unrouted call carries a justifying comment. `n/a` where the backend is a single instance. — `_index.md#sharding`
 - [ ] **Idempotency**: worker `idempotent!` (a cop fails otherwise); can "safely run multiple times with the same arguments"; spec uses `it_behaves_like 'an idempotent worker'` with no mocks that hide side effects; deduplication strategy (`until_executing` / `until_executed`), `including_scheduled:`, and `ttl:` set deliberately. — `idempotent_jobs.md#declaring-a-worker-as-idempotent`, `#ensuring-a-worker-is-idempotent`, `#deduplication`, `#setting-the-deduplication-time-to-live-ttl`
 - [ ] **`data_consistency`** explicitly set (RuboCop-enforced): `:always` "Strongly discouraged"; `:sticky` "the preferred option"; `:delayed` for jobs where delay doesn't matter (cache expiry, webhooks) and **not** for jobs with retries disabled such as cron jobs. Optional `feature_flag:` (percentage-of-time only) and `overrides:` per database. — `worker_attributes.md#job-data-consistency-strategies`, `#trading-immediacy-for-reduced-primary-load`, `#feature_flag-property`
 - [ ] `feature_category` defined ("All Sidekiq workers must define a known feature category"). — `worker_attributes.md#feature-category`
@@ -289,7 +302,7 @@ Sources: `doc/development/sidekiq/_index.md`, `idempotent_jobs.md`, `worker_attr
 - [ ] **Backwards compatibility**: "Jobs need to be backward and forward compatible between consecutive versions"; adding/removing arguments follows the deprecate-then-remove or multi-step release process; use `version N` and handle older job shapes; worker/queue renames and removals span M, M+1, M+2. — `compatibility_across_updates.md#changing-the-arguments-for-a-worker`, `_index.md#versioning`, `compatibility_across_updates.md#removing-worker-classes`
 - [ ] Parameters small, simple, native JSON types (string keys); >100 KB compressed, >5 MB raises `ExceedLimitError`; consistent parameter ordering. — `_index.md#job-parameters`, `#job-size`, `#parameter-ordering`
 - [ ] Concurrency limits, deferral, and pause control considered for high-volume workers. — `_index.md#concurrency-limit`, `#deferring-sidekiq-workers`, `worker_attributes.md#job-pause-control`
-- [ ] "Sidekiq workers cannot change in a backwards-incompatible way." — `code_review.md#gitlab-specific-concerns`
+- [ ] Background-job classes cannot change in a backwards-incompatible way. — `code_review.md#gitlab-specific-concerns`
 
 ### C4. REST API (Grape)
 
@@ -308,7 +321,7 @@ Source: `doc/development/api_styleguide.md` — `https://docs.gitlab.com/develop
 
 Sources: `doc/development/graphql_guide/reviewing.md` — `https://docs.gitlab.com/development/graphql_guide/reviewing/`; `doc/development/api_graphql_styleguide.md`; `graphql_guide/authorization.md`
 
-Reviewer checklist from `reviewing.md` (reviewed "for: breaking changes, authorization, performance"; ping `@gitlab-org/graphql-experts`):
+Reviewer checklist from `reviewing.md` (reviewed "for: breaking changes, authorization, performance"; loop in the project's GraphQL experts group if it has one):
 
 - [ ] Description includes a sample query with setup instructions; run it in GraphiQL. — `#description-with-sample-query`
 - [ ] No breaking changes unless after a full deprecation cycle (experiments exempt). — `#no-breaking-changes-unless-after-full-deprecation-cycle`
@@ -340,7 +353,7 @@ From `graphql_guide/authorization.md`:
 
 Source: `doc/development/secure_coding_guidelines/_index.md` — `https://docs.gitlab.com/development/secure_coding_guidelines/` (the single-file path in the task does not exist; this directory does)
 
-`_index.md` top-level sections: SAST coverage; Process for creating new guidelines and accompanying rules; Permissions; CI/CD development; Denial of Service (ReDoS) / Catastrophic Backtracking; JSON Parsing (`Gitlab::Json.parse`, deprecated `safe_parse`); JSON Web Tokens (JWT); Server Side Request Forgery (SSRF); XSS guidelines (including "XSS mitigation and prevention in JavaScript and Vue", "Content Security Policy"); Path Traversal guidelines; General recommendations (TLS minimum version, ciphers); GitLab Internal Authorization; Time of check to time of use bugs; Handling credentials (at rest, in transit, token prefixes); Artificial Intelligence (AI) features (unauthorized model endpoint access, prompt injection, unsanitized responses, training, insecure design); OWASP Top 10 for LLM Applications; Local Storage; Logging (what to log, what not to capture, protecting log files); Paid tiers for vulnerability mitigation; Who to contact if you have questions.
+`_index.md` top-level sections: SAST coverage; Process for creating new guidelines and accompanying rules; Permissions; CI/CD development; Denial of Service (ReDoS) / Catastrophic Backtracking; JSON parsing (use the project's wrapper, not the raw parser); JSON Web Tokens (JWT); Server Side Request Forgery (SSRF); XSS guidelines (including "XSS mitigation and prevention in JavaScript and Vue", "Content Security Policy"); Path Traversal guidelines; General recommendations (TLS minimum version, ciphers); internal authorization; Time of check to time of use bugs; Handling credentials (at rest, in transit, token prefixes); Artificial Intelligence (AI) features (unauthorized model endpoint access, prompt injection, unsanitized responses, training, insecure design); OWASP Top 10 for LLM Applications; Local Storage; Logging (what to log, what not to capture, protecting log files); Paid tiers for vulnerability mitigation; Who to contact if you have questions.
 
 `ruby.md` sections: Regular Expressions guidelines (anchors / multi-line); ReDoS; SSRF; XSS (Rails); XML external entities; Path Traversal; OS command injection; Working with archive files (`SafeZip`, Zip Slip, symlink attacks); URL Spoofing (`external_redirect_path`); Email and notifications; Request Parameter Typing; Guidelines when defining missing methods with metaprogramming; Serialization.
 
@@ -348,13 +361,13 @@ Source: `doc/development/secure_coding_guidelines/_index.md` — `https://docs.g
 
 ### C7. Database (pointer only; not read in depth)
 
-Source: `doc/development/database_review.md` — `https://docs.gitlab.com/development/database_review/`. Sections: General process; Required (Migrations, Queries); Roles and process; How to prepare the merge request for a database review (migrations, data migrations, raw SQL, query plans, foreign keys, tables, removals, bulk updates); How to review for database (basic migration requirements, style/standards, large table restrictions, timing/performance, background migrations, new table/column reviews, query performance analysis). The acceptance checklist requires "information for database reviewers in the MR description" (`database_review.md#required`), and `code_review.md#gitlab-specific-concerns` requires migrations to be reversible, performant at GitLab.com scale, and of the correct type.
+Source: `doc/development/database_review.md` — `https://docs.gitlab.com/development/database_review/`. Sections: General process; Required (Migrations, Queries); Roles and process; How to prepare the merge request for a database review (migrations, data migrations, raw SQL, query plans, foreign keys, tables, removals, bulk updates); How to review for database (basic migration requirements, style/standards, large table restrictions, timing/performance, background migrations, new table/column reviews, query performance analysis). The acceptance checklist requires "information for database reviewers in the [change request] description" (`database_review.md#required`), and the reviewer guidance requires migrations to be reversible, performant at production scale, and of the correct type.
 
 ---
 
 ## Notes on the sources
 
-**Source repo:** `/Users/surajtripathi/repo/gitlab-development-kit/gitlab` (the path given in the task, `repo/gitlabdevelopmentkit/gitlab`, does not exist; the coordinator corrected it mid-task). Docs read at commit `718b5cb265bf3e24bd650275799257c667023561` (2026-08-31). Nothing was modified.
+**Source:** the public developer documentation tree (`doc/development/`), read in full at a pinned commit. Nothing in the source was modified; every item above cites its own page and anchor so it can be re-read at the current version.
 
 **File-existence notes (things the task asked for that differ on disk):**
 
@@ -375,22 +388,30 @@ Source: `doc/development/database_review.md` — `https://docs.gitlab.com/develo
 
 # Applying this checklist in the skill
 
-## Applicability by repo
+## Applicability to the project under review
 
-| Area | gitlab-org/gitlab | customers-gitlab-com |
+Part A (acceptance, how to review, description requirements) is close to universal. Parts B
+and C describe one large monolith's specific machinery — its feature-flag framework, its
+enterprise/community code split, its background-job attributes, its API frameworks. **Read
+each one through the stack the profile declares** and record what the project does not have
+as `n/a` with the reason, never skipped.
+
+Worked example of how a profile narrows it (a project whose profile declares a single Rails
+app with an external feature-flag service, no enterprise/community split, background jobs,
+an internal REST API and a GraphQL API, and no security scanners in CI):
+
+| Area | Upstream (as documented above) | How this profile narrows it |
 |---|---|---|
-| A1 acceptance checklist, A3 how to review, A5 description requirements | as written | as written; the MR template links the same checklist |
-| A4 approval guidelines (which specialist) | as written | roles come from the Danger roulette table; `~database` needs a DB reviewer, frontend/backend maintainers per the handbook `#customers-app` page |
-| A6 contribution acceptance criteria, definition of done | as written | as written except Geo/Cells/Self-Managed items, which are `n/a` |
-| C1 feature flags | Flipper-style `Feature.enabled?`, YAML definition, rollout issue by type | Unleash `Unleash.enabled?`; flag lives on the project's Feature Flags page; MR must list it under "Feature flags to enable"; ask for the rollout / removal issue |
-| C2 EE / FOSS | as written | `n/a` |
-| C3 Sidekiq | as written | `idempotent!`, `feature_category`, retries and argument compatibility apply; `data_consistency`, sharding and Cells items are `n/a`; a job without `feature_category` is blocking per the repo's Duo instructions |
-| C4 REST (Grape) | as written | internal API under `app/controllers/api/`; the internal-API doc `doc/architecture/cells/api_requests.md` governs requests to GitLab; breaking-change reasoning applies to anything GitLab.com calls |
-| C5 GraphQL backend | as written | `graphql-ruby` schema in `app/graphql/`; authorization via CanCanCan abilities (`authorize!`), errors-as-data convention applies, batch loading for N+1 |
-| C6 secure coding | as written | as written; no scanner runs in customers-dot, so the items are checked by reading (`.agents/skills/rails/references/security.md`) |
+| A1 acceptance checklist, A3 how to review, A5 description requirements | as written | as written; the change-request template links the same checklist |
+| A4 approval guidelines (which specialist) | as written | roles come from the reviewer-assignment bot's table; the profile maps the project's labels to specialist roles and names where maintainer lists live |
+| A6 contribution acceptance criteria, definition of done | as written | as written except the items about deployment models this product does not have, which are `n/a` |
+| C1 feature flags | in-repo flag framework, definition YAML, rollout issue by type | the profile's flag service and its API; the flag is declared in that service, not in the repo; the description must list it, and the rollout / removal issue is still asked for |
+| C2 licensed / tiered code separation | as written | `n/a` |
+| C3 background jobs | as written | idempotency, an owning-category attribute, retries and argument compatibility apply; data-consistency, sharding and cell-topology items are `n/a` |
+| C4 REST API | as written | the project's own API layer and its conventions; breaking-change reasoning applies to anything another service calls |
+| C5 GraphQL backend | as written | the project's schema location; authorization through its own ability layer, errors-as-data if that is the convention, batch loading for N+1 |
+| C6 secure coding | as written | as written; with no scanner in CI the items are checked by reading, against the project's own security reference if it ships one |
 
-For customers-dot Ruby, the repo's own review reference is authoritative on layering and
-conventions: `.agents/skills/rails/references/review.md` (Controller → Interaction → Service →
-Model, dry-monads not `ServiceResponse`, `on_delete` on every FK, anemic-model and code-smell
-list) and `.agents/skills/rspec/SKILL.md` for specs. Walk that file's checklist as well and
-record verdicts in the same Phase 4 table.
+If the project ships its own language or framework review reference (layering, result
+objects, foreign-key conventions, code smells) that file is authoritative on conventions.
+Walk its checklist as well and record verdicts in the same Phase 4 table.

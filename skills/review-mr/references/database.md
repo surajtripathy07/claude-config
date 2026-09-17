@@ -1,10 +1,10 @@
 ---
-Distilled 2026-09-07 from gitlab-org/gitlab `doc/development/` at commit 718b5cb265bf (2026-08-31), read from ~/repo/gitlab-development-kit/gitlab. Source of truth is the docs, not this file: when an item fires during a review, open the local doc file it cites (or the public URL) and read that section in full before recording a verdict. Refresh this file when the docs change; record the new commit here.
+These reference files distill GitLab's public developer documentation (docs.gitlab.com) into a portable review checklist — freely readable, sourced, and not specific to any one project's private code. The distillation is pinned at docs commit `<sha>` — refresh this file when the docs change and record the new commit here. Source of truth is those docs, not this file: when an item fires during a review, open the doc it cites and read that section in full before recording a verdict. Where the project under review differs, the profile says so — see "Applicability" at the end.
 ---
 
-# GitLab Database Review — Reviewer Checklist
+# Database Review — Reviewer Checklist (distilled from public developer docs)
 
-**Source of truth:** `doc/development/` in `gitlab-org/gitlab` at commit `718b5cb265bf` (master, 2026-08-31), read from `/Users/surajtripathi/repo/gitlab-development-kit/gitlab`. All 17 requested files were present and read in full. Nothing below is invented; where the docs are silent, this document is silent.
+**Source of truth:** the upstream project's public `doc/development/` tree, read in full at a pinned commit. Nothing below is invented; where the docs are silent, this document is silent. Each item cites its source path and public URL so it can be re-read.
 
 **Notation:** each checklist item ends with a `Source:` line giving the repo path + heading anchor and the public URL. Thresholds are quoted as written in the docs.
 
@@ -18,9 +18,9 @@ A database review is required for:
 
 - Changes that touch the database schema or perform data migrations, including files in:
   - `db/`
-  - `lib/gitlab/background_migration/`
+  - the background-migration job directory
 - Changes to the database tooling. For example:
-  - migration or ActiveRecord helpers in `lib/gitlab/database/`
+  - the project's migration or ActiveRecord helper modules
   - load balancing
 - Changes that produce SQL queries that are beyond the obvious. It is generally up to the author of a merge request to decide whether or not complex queries are being introduced and if they require a database review.
 - Changes in Service Data metrics that use `count`, `distinct_count`, `estimate_batch_distinct_count`, and `sum`. These metrics could have complex queries over large tables.
@@ -64,7 +64,7 @@ Source: `doc/development/database_review.md#required` — https://docs.gitlab.co
 
 Source: `doc/development/database_review.md#roles-and-process` — https://docs.gitlab.com/development/database_review/#roles-and-process
 
-The reviewer guidelines add: the database reviewer is tasked with reviewing the database-specific updates and making sure that any queries or modifications perform without issues at the scale of GitLab.com. Reviewers are expected to review assigned MRs in a timely manner or let the author know as soon as possible and help them find another reviewer or maintainer; if at capacity, notify the author with a comment on the MR and reassign the review using Reviewer roulette.
+The reviewer guidelines add: the database reviewer is tasked with reviewing the database-specific updates and making sure that any queries or modifications perform without issues at production scale. Reviewers are expected to review assigned change requests in a timely manner or let the author know as soon as possible and help them find another reviewer or maintainer; if at capacity, notify the author with a comment on the change request and reassign the review using whatever reviewer-assignment tooling the project has.
 
 Source: `doc/development/database/database_reviewer_guidelines.md#scope-of-work-done-by-a-database-reviewer` — https://docs.gitlab.com/development/database/database_reviewer_guidelines/#scope-of-work-done-by-a-database-reviewer
 Source: `doc/development/database/database_reviewer_guidelines.md#what-to-do-if-you-feel-overwhelmed` — https://docs.gitlab.com/development/database/database_reviewer_guidelines/#what-to-do-if-you-feel-overwhelmed
@@ -73,13 +73,13 @@ Source: `doc/development/database/database_reviewer_guidelines.md#what-to-do-if-
 
 | Label | Who applies | When |
 |---|---|---|
-| `~database` | Author | When a DB review is needed. If roulette did not suggest a DB reviewer and maintainer, make sure the label is applied and rerun the `danger-review` CI job, or pick someone from the `@gl-database` team. |
-| `~"database::reviewed"` | Reviewer | After first-pass review and approval; then request the roulette-suggested maintainer. |
+| `~database` | Author | When a DB review is needed. If the reviewer-assignment tooling did not suggest a database reviewer and maintainer, make sure the label is applied and rerun the job that produces the suggestions, or pick someone from the project's database-reviewer group. |
+| the project's "database reviewed" label | Reviewer | After first-pass review and approval; then request the suggested database maintainer. |
 | `~"database::approved"` | Maintainer | After final approval. |
 | `~data-deletion` | Author | If the migration deletes data. |
 | `pipeline:skip-check-migrations` | Author | Only for `db:check-migrations` false positives (see 2.1). |
 
-Review workload is distributed using reviewer roulette. The MR author should request a review from the suggested database **reviewer**; when they sign off, they hand over to the suggested database **maintainer**.
+Review workload is distributed by the project's reviewer-assignment tooling. The author should request a review from the suggested database **reviewer**; when they sign off, they hand over to the suggested database **maintainer**.
 
 Source: `doc/development/database_review.md#distributing-review-workload` — https://docs.gitlab.com/development/database_review/#distributing-review-workload
 Source: `doc/development/database_review.md#preparation-when-adding-data-migrations` — https://docs.gitlab.com/development/database_review/#preparation-when-adding-data-migrations
@@ -102,9 +102,9 @@ Source for all of 1.5: `doc/development/database_review.md#how-to-prepare-the-me
 - Lock retries are enabled by default for all transactional migrations. For non-transactional migrations review the relevant documentation for use cases and solutions.
 - Ensure RuboCop checks are not disabled unless there's a valid reason to.
 - When adding an index to a large table (list in `rubocop/rubocop-migrations.yml`), test its execution using `CREATE INDEX CONCURRENTLY` in Database Lab and add the execution time to the MR description:
-  - Execution time largely varies between Database Lab and GitLab.com, but an elevated execution time from Database Lab can give a hint that the execution on GitLab.com is also considerably high.
+  - Execution time largely varies between the plan service's clone and production, but an elevated execution time from Database Lab can give a hint that execution in production is also considerably high.
   - If the execution from Database Lab is longer than `10 minutes`, the index should be moved to a post-migration. Keep in mind that in this case you may need to split the migration and the application changes in separate releases to ensure the index is in place when the code that needs it is deployed.
-- Manually trigger the database testing job (`db:gitlabcom-database-testing`) in the `test` stage.
+- Manually trigger the database testing job (the migration-testing CI job) in the `test` stage.
   - This job runs migrations in a Database Lab clone and posts to the MR its findings (queries, runtime, size change).
   - Review migration runtimes and any warnings.
 
@@ -144,7 +144,7 @@ Anchor: `#preparation-when-adding-foreign-keys-to-existing-tables`
 - New tables and columns are not necessarily risky, but over time some access patterns are inherently difficult to scale. To identify these risky patterns in advance, we must document expectations for access and size. Include in the MR description answers to these questions:
   - What is the anticipated growth for the new table over the next 3 months, 6 months, 1 year? What assumptions are these based on?
   - How many reads and writes per hour would you expect this table to have in 3 months, 6 months, 1 year? Under what circumstances are rows updated? What assumptions are these based on?
-  - Based on the anticipated data volume and access patterns, does the new table pose an availability risk to GitLab.com or GitLab Self-Managed instances? Does the proposed design scale to support the needs of GitLab.com and GitLab Self-Managed customers?
+  - Based on the anticipated data volume and access patterns, does the new table pose an availability risk to the hosted service or customer-operated instances? Does the proposed design scale to support the needs of both hosted and customer-operated deployments?
 
 Anchor: `#preparation-when-adding-tables`
 
@@ -172,13 +172,13 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 
 ### 2.1 Basic migration requirements
 
-- [ ] **Database testing job passing.** Make sure the `db:gitlabcom-database-testing` job is passing.
+- [ ] **Database testing job passing.** Make sure the project's migration-testing CI job is passing.
   Source: `doc/development/database_review.md#basic-migration-requirements` — https://docs.gitlab.com/development/database_review/#basic-migration-requirements
 
 - [ ] **`db/structure.sql` only contains related changes.** Verify that `db/structure.sql` contains only changes related to migrations in this merge request — no unrelated schema modifications. Columns must not be manually reordered for existing tables. For an async index, the schema change is committed in the *second* MR (the one with `add_concurrent_index`).
   Source: `doc/development/database_review.md#basic-migration-requirements`; `doc/development/migration_style_guide.md#schema-changes` — https://docs.gitlab.com/development/migration_style_guide/#schema-changes
 
-- [ ] **Reversible with `#down`.** Check migrations are reversible and implement a `#down` method. Migrations **must be** reversible. If changes cannot be reversed (e.g. data loss), a `down` method with `# no-op` and a comment explaining why is still required, so the migration itself can be reversed. The migration should carry a comment describing how reversibility was tested. Note: on GitLab production a roll-forward strategy is used, not `db:rollback`; `down` is primarily for development.
+- [ ] **Reversible with `#down`.** Check migrations are reversible and implement a `#down` method. Migrations **must be** reversible. If changes cannot be reversed (e.g. data loss), a `down` method with `# no-op` and a comment explaining why is still required, so the migration itself can be reversed. The migration should carry a comment describing how reversibility was tested. Note: many production environments use a roll-forward strategy, not `db:rollback`; `down` is primarily for development.
   Source: `doc/development/migration_style_guide.md#reversibility` — https://docs.gitlab.com/development/migration_style_guide/#reversibility
 
 - [ ] **Transaction vs. `disable_ddl_transaction!`.** Ensure migrations are either run within a transaction (Rails default) or use only concurrent operations with `disable_ddl_transaction!`. `disable_ddl_transaction!` means "Do not execute this migration in a single PostgreSQL transaction." Required for `CREATE INDEX CONCURRENTLY` / `add_concurrent_index`, `add_concurrent_foreign_key`, `with_lock_retries`, batched DML, non-PostgreSQL targets (e.g. Redis), or multi-database targets. Subtransactions are disallowed.
@@ -190,7 +190,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **`db:check-migrations` job.** Runs in the `test` stage and checks (1) schema dump after rollback matches target branch, (2) schema dump matches the committed `db/structure.sql`, (3) `db/schema_migrations` diff. Not allowed to fail. Known false positives: a dropped-then-rolled-back column is re-added at the end of the column list; `pg_dump` ordering changes after minor PostgreSQL upgrades (report in `#database`). In those cases the `pipeline:skip-check-migrations` label may be added. Rollback comparison failure often means the branch is behind target — rebase.
   Source: `doc/development/database/dbcheck-migrations-job.md` — https://docs.gitlab.com/development/database/dbcheck-migrations-job/; `#false-positives`; `#schema-dump-comparison-fails-after-rollback`
 
-- [ ] **Migration tests present where required.** Post migrations (`/db/post_migrate`) and background migrations (`lib/gitlab/background_migration`) **must** have migration tests. Data migrations **must** have a migration test. Tests are not enforced on post migrations that only perform schema changes. Expect in `spec/migrations`: `require_migration!`, `table(:name)` (not FactoryBot), `migrate!`, `reversible_migration`, `have_scheduled_batched_migration`, `be_finalize_background_migration_of`. Specs run under `:migration` tag; non-`gitlab_main` schemas need `migration: :gitlab_ci` etc. No transaction is present (deletion cleanup strategy).
+- [ ] **Migration tests present where required.** Post migrations (`/db/post_migrate`) and background migrations **must** have migration tests. Data migrations **must** have a migration test. Tests are not enforced on post migrations that only perform schema changes. Expect in `spec/migrations`: `require_migration!`, `table(:name)` (not FactoryBot), `migrate!`, `reversible_migration`, `have_scheduled_batched_migration`, `be_finalize_background_migration_of`. Specs run under the migration tag; a spec touching a non-default database declares which one. No transaction is present (deletion cleanup strategy).
   Source: `doc/development/testing_guide/testing_migrations_guide.md#when-to-write-a-migration-test` — https://docs.gitlab.com/development/testing_guide/testing_migrations_guide/#when-to-write-a-migration-test; `#test-helpers`
 
 ### 2.2 Style and standards compliance
@@ -243,7 +243,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **Data migrations prefer Arel/plain SQL** over ActiveRecord; plain SQL inputs quoted via `quote_string`. Models local to the migration inherit `MigrationRecord`, set `self.table_name` explicitly, and call `reset_column_information`. Application code in migrations is discouraged. Batch modifications with `each_batch_range` / `BATCH_SIZE`.
   Source: `doc/development/migration_style_guide.md#data-migration` — https://docs.gitlab.com/development/migration_style_guide/#data-migration; `#modifying-existing-data`; `#using-application-code-in-migrations-discouraged`
 
-- [ ] **Database dictionary updated.** New table: `db/docs/<table_name>.yml` (or `ee/db/embedding/docs/`, `ee/db/geo/docs/`) in the same commit as the migration, with required `table_name`, `feature_categories`, `milestone`, `gitlab_schema`, `table_size`, and `sharding_key`/`desired_sharding_key` as applicable. Dropped table: move file to `deleted_tables/` and add `removed_by_url` + `removed_in_milestone`. Same for views (`views/`, `deleted_views/`).
+- [ ] **Database dictionary updated.** New table: a dictionary entry in the same commit as the migration, recording the table name, owning feature category, milestone, which database/schema it belongs to, its expected size, and its tenant-partitioning key where applicable. Dropped table: move file to `deleted_tables/` and add `removed_by_url` + `removed_in_milestone`. Same for views (`views/`, `deleted_views/`).
   Source: `doc/development/database/database_dictionary.md#adding-tables` — https://docs.gitlab.com/development/database/database_dictionary/#adding-tables; `#dropping-tables`; `#adding-views`; `#dropping-views`
 
 - [ ] **RuboCop not disabled without valid reason** (including `Database/AvoidScopeTo`, `PreventIndexCreation`, `AddColumnsToWideTables`, `Migration::UnfinishedDependencies`). Large-table cop disables must link the approved exception issue.
@@ -251,7 +251,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 
 ### 2.3 Large table and size restrictions
 
-- [ ] **Size thresholds.** Verify that indexes and columns are not added to pre-existing tables over the size threshold. Limitations (maximum size after the action, including indexes and column size), on GitLab.com:
+- [ ] **Size thresholds.** Verify that indexes and columns are not added to pre-existing tables over the size threshold. Limitations (maximum size after the action, including indexes and column size), as applied in one large production environment:
 
   | Limitation | Maximum size after the action (including indexes and column size) |
   |---|---|
@@ -265,19 +265,19 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **Index on large table with elevated execution time (> 1h in Database Lab).** Make sure to follow the steps to add it asynchronously. **Maintainer:** after the MR is merged, notify Release Managers on `#f_upcoming_release` Slack.
   Source: `doc/development/database_review.md#large-table-and-size-restrictions` — https://docs.gitlab.com/development/database_review/#large-table-and-size-restrictions
 
-- [ ] **Index creation > 20 minutes in `db:gitlabcom-database-testing` → async.** When the pipeline reports an index creation taking longer than 20 minutes, create the index asynchronously. The clone can underestimate GitLab.com times, so this threshold is intentionally conservative.
+- [ ] **Index creation > 20 minutes in the migration-testing CI job → async.** When the pipeline reports an index creation taking longer than 20 minutes, create the index asynchronously. The clone can underestimate production times, so this threshold is intentionally conservative.
   Source: `doc/development/migration_style_guide.md#how-long-a-migration-should-take` — https://docs.gitlab.com/development/migration_style_guide/#how-long-a-migration-should-take
 
 - [ ] **Index > 10 minutes in Database Lab → post-migration.** (Author preparation rule; see 1.5.)
   Source: `doc/development/database_review.md#preparation-when-adding-migrations`
 
-- [ ] **Async index/FK process is two MRs.** MR 1: post-deploy `prepare_async_index` (or `prepare_partitioned_async_index`, `prepare_async_index_removal`, `prepare_async_foreign_key_validation`) with a follow-up issue linked in a comment. Verify via `/chatops gitlab run auto_deploy status <merge_sha>` returning `db/gprd`, wait a weekend (runs every 12th minute on weekends, `12 * * * 0,6`), and check with Database Lab `\d <index_name>` that it is not `invalid`. MR 2: synchronous `add_concurrent_index` / `remove_concurrent_index_by_name` / `validate_foreign_key` plus the `structure.sql` change. Warning: if MR 2 deploys before the async op completes, the op runs synchronously. Local testing output of async removal must be in the MR description. No-op outside GitLab.com.
+- [ ] **Async index/FK process is two MRs.** MR 1: post-deploy `prepare_async_index` (or `prepare_partitioned_async_index`, `prepare_async_index_removal`, `prepare_async_foreign_key_validation`) with a follow-up issue linked in a comment. Verify the async operation actually ran in production (the project's deploy-status tooling), allow for its schedule, and confirm on the replica that the resulting index is not `invalid`. MR 2: synchronous `add_concurrent_index` / `remove_concurrent_index_by_name` / `validate_foreign_key` plus the schema-dump change. Warning: if MR 2 deploys before the async op completes, the op runs synchronously. Local testing output of async removal must be in the MR description. No-op outside the hosted production environment.
   Source: `doc/development/database/adding_database_indexes.md#create-indexes-asynchronously` — https://docs.gitlab.com/development/database/adding_database_indexes/#create-indexes-asynchronously; `#drop-indexes-asynchronously`; `doc/development/database/foreign_keys.md#validate-the-foreign-key-asynchronously`
 
-- [ ] **15 indexes per table limit.** GitLab enforces a limit of **15 indexes** per table. If already at 15: remove unused indexes, combine existing indexes, or use a composite index. Some tables have `PreventIndexCreation` / `AddColumnsToWideTables` cops (LockManager LWLock contention). Tables with more than 16 indexes affect query planning.
+- [ ] **Index-count limit.** One large production project enforces a limit of **15 indexes** per table. If already at 15: remove unused indexes, combine existing indexes, or use a composite index. Wide or hot tables often carry linter rules that block further index or column additions (lock-manager contention). Tables with more than 16 indexes affect query planning.
   Source: `doc/development/database/adding_database_indexes.md#index-limitations` — https://docs.gitlab.com/development/database/adding_database_indexes/#index-limitations; `#some-tables-should-not-have-any-more-indexes`; `doc/development/database/layout_and_access_patterns.md#data-model-trade-offs`
 
-- [ ] **High-traffic tables.** `with_lock_retries` is advised for migrations touching high-traffic tables (list in `rubocop/rubocop-migrations.yml`; identified by read operations, record count, size > 10 GB). Columns purely for GitLab.com analytics/reporting are discouraged on high-traffic tables. Triggers on high-traffic tables go in a post-deployment migration with `with_lock_retries`, idempotent (`replace: true`, `if_exists: true`).
+- [ ] **High-traffic tables.** `with_lock_retries` is advised for migrations touching high-traffic tables (the project's linter config usually lists them; identified by read volume, record count, size over about 10 GB). Columns purely for analytics or reporting are discouraged on high-traffic tables. Triggers on high-traffic tables go in a post-deployment migration with `with_lock_retries`, idempotent (`replace: true`, `if_exists: true`).
   Source: `doc/development/migration_style_guide.md#high-traffic-tables` — https://docs.gitlab.com/development/migration_style_guide/#high-traffic-tables; `#creating-triggers`; `#when-to-use-the-helper-method`
 
 - [ ] **Alternatives to widening a large table** were considered: separate `has_one` table, Elasticsearch, simplified filtering/sorting (e.g. `id` instead of `created_at`).
@@ -288,16 +288,16 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 
 ### 2.4 Timing and performance standards
 
-- [ ] **Migration timing guidelines** (see section 4 for the verbatim table): regular `<= 3 minutes`, post-deploy `<= 10 minutes`, background `> 10 minutes`; all migrations for a single deploy shouldn't take longer than 1 hour for GitLab.com. Durations are measured against GitLab.com.
+- [ ] **Migration timing guidelines** (see section 4 for the verbatim table): regular `<= 3 minutes`, post-deploy `<= 10 minutes`, background `> 10 minutes`; all migrations for a single deploy shouldn't take longer than 1 hour in production. Durations are measured against production.
   Source: `doc/development/migration_style_guide.md#how-long-a-migration-should-take` — https://docs.gitlab.com/development/migration_style_guide/#how-long-a-migration-should-take
 
-- [ ] **Transaction budget.** In a single transaction, cumulative query time executed in a migration needs to fit comfortably in 15 seconds — preferably much less than that — on GitLab.com.
+- [ ] **Transaction budget.** In a single transaction, cumulative query time executed in a migration needs to fit comfortably in 15 seconds — preferably much less than that — in production.
   Source: `doc/development/database_review.md#timing-and-performance-standards` — https://docs.gitlab.com/development/database_review/#timing-and-performance-standards
 
 - [ ] **Query timing.** General guideline is for queries to come in below 100ms execution time. Full table in section 4: general `100ms`; queries in a migration `100ms`; concurrent operations in a migration `5min`; concurrent operations in a post migration `20min`; background migrations `1s`; Service Ping `1s`. Guidelines apply for both cold and warm cache.
   Source: `doc/development/database/query_performance.md#timing-guidelines-for-queries` — https://docs.gitlab.com/development/database/query_performance/#timing-guidelines-for-queries
 
-- [ ] **Statement timeout.** GitLab.com production `statement_timeout` is `15s`. Helpers such as `add_concurrent_index` disable it internally; raw SQL that may exceed 15s needs `disable_statement_timeout` (per-connection for `CREATE INDEX CONCURRENTLY`; per-transaction for `ALTER TABLE ... VALIDATE CONSTRAINT`) — rarely needed; consult DB reviewers/maintainers. Migrations connect directly to the primary, bypassing PgBouncer.
+- [ ] **Statement timeout.** a typical production `statement_timeout` is `15s`. Helpers such as `add_concurrent_index` disable it internally; raw SQL that may exceed 15s needs `disable_statement_timeout` (per-connection for `CREATE INDEX CONCURRENTLY`; per-transaction for `ALTER TABLE ... VALIDATE CONSTRAINT`) — rarely needed; consult DB reviewers/maintainers. Migrations connect directly to the primary, bypassing PgBouncer.
   Source: `doc/development/migration_style_guide.md#heavy-operations-in-a-single-transaction` — https://docs.gitlab.com/development/migration_style_guide/#heavy-operations-in-a-single-transaction; `#temporarily-turn-off-the-statement-timeout-limit`
 
 - [ ] **Lock retries.** Transactional migrations have lock-retry enabled by default. Non-transactional migrations use `with_lock_retries` (cannot be used inside `change`; needs explicit `up`/`down`; RuboCop restricts contents — `add_concurrent_index` is not allowed inside). Worst case: 50 iterations over 40 minutes, then runs without `lock_timeout`; fails with statement timeout if a 40+ minute transaction holds the table. Acquire all needed locks up front or split the migration so only one lock is needed at a time.
@@ -318,7 +318,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **Avoid `change_column`** (re-defines whole column type). `change_column_default` is safe in a single transaction (metadata only) but requires the `SafelyChangeColumnDefault` two-release process.
   Source: `doc/development/database/avoiding_downtime_in_migrations.md#changing-column-constraints` — https://docs.gitlab.com/development/database/avoiding_downtime_in_migrations/#changing-column-constraints; `#changing-column-defaults`; `doc/development/migration_style_guide.md#changing-the-column-default`
 
-- [ ] **`update_column_in_batches` on a large table** is acceptable only when updating a small subset of rows, and only after validating on GitLab.com staging (or asking someone to).
+- [ ] **`update_column_in_batches` on a large table** is acceptable only when updating a small subset of rows, and only after validating on a staging environment with production-like data (or asking someone to).
   Source: `doc/development/migration_style_guide.md#updating-an-existing-column` — https://docs.gitlab.com/development/migration_style_guide/#updating-an-existing-column
 
 - [ ] **Autovacuum wraparound.** Migration filename should include the complete table name(s) (e.g. `add_foreign_key_between_ci_builds_and_ci_job_artifacts`) so the PDM pipeline can halt on wraparound vacuum; omit the full name when the migration has no conflicting locks.
@@ -326,33 +326,33 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 
 ### 2.5 Migration placement and timing
 
-- [ ] **Establish a time estimate for execution on GitLab.com** (from `db:gitlabcom-database-testing` output).
+- [ ] **Establish a time estimate for execution in production** (from the migration-testing CI job output).
   Source: `doc/development/database_review.md#migration-placement-and-timing` — https://docs.gitlab.com/development/database_review/#migration-placement-and-timing
 
 - [ ] **Appropriate migration type.** Regular (`db/migrate`, runs before Canary; "no more than a few minutes"; exception: absolutely critical for app to operate, else feature flag + post-deploy). Post-deployment (`db/post_migrate`; run daily at release manager discretion; for non-critical schema changes or data migrations of at most a few minutes; clean-ups, non-critical indices on high-traffic tables, long-running non-critical indices). **Must always be regular, never post-deploy:** `create_table`, `add_column` to an existing table. Batched background (data only; must not change the schema). `NOT NULL` add → post-deploy; `NOT NULL` remove → regular. Removing a default for a non-nullable column → post-deploy (after adding with default in a regular migration).
   Source: `doc/development/migration_style_guide.md#choose-an-appropriate-migration-type` — https://docs.gitlab.com/development/migration_style_guide/#choose-an-appropriate-migration-type; `doc/development/database/post_deployment_migrations.md#use-cases`; `doc/development/database/avoiding_downtime_in_migrations.md#changing-column-constraints`; `doc/development/migration_style_guide.md#removing-the-column-default-for-non-nullable-columns`
 
-- [ ] **Index placement.** Index to improve existing queries → post-deploy. Index for new/updated queries: if queries don't time out or breach timings without it → post-deploy, same MR as the code. If slow on GitLab.com → two MRs (PDM first; code MR merges only after PDM confirmed executed via the release docs procedure) or one MR behind a feature flag. Application must not assume a PDM schema shipped in the same release for Self-Managed; a regular migration is acceptable only when very fast (new/very small table), otherwise at least two releases.
+- [ ] **Index placement.** Index to improve existing queries → post-deploy. Index for new/updated queries: if queries don't time out or breach timings without it → post-deploy, same MR as the code. If slow in production → two MRs (PDM first; code MR merges only after PDM confirmed executed via the release docs procedure) or one MR behind a feature flag. Application must not assume a PDM schema shipped in the same release for customer-operated deployments; a regular migration is acceptable only when very fast (new/very small table), otherwise at least two releases.
   Source: `doc/development/database/adding_database_indexes.md#migration-type-to-use` — https://docs.gitlab.com/development/database/adding_database_indexes/#migration-type-to-use; `#new-or-updated-queries-perform-slowly-on-gitlabcom`; `#new-or-updated-queries-might-be-slow-on-a-large-gitlab-instance`
 
-- [ ] **Unique index on existing table.** Unless absolutely guaranteed tiny, multiple post-deploy migrations over multiple releases (remove/fix duplicates, then add index). A unique index cannot be introduced non-validated; use a partial unique index + application validation in the interim. All unique indexes need to be scoped (Cells). `nulls_not_distinct: true` when NULLs must be unique.
+- [ ] **Unique index on existing table.** Unless absolutely guaranteed tiny, multiple post-deploy migrations over multiple releases (remove/fix duplicates, then add index). A unique index cannot be introduced non-validated; use a partial unique index + application validation in the interim. All unique indexes need to be scoped to the tenant-partitioning key, if the project has one. `nulls_not_distinct: true` when NULLs must be unique.
   Source: `doc/development/database/adding_database_indexes.md#add-a-unique-index-acting-as-a-constraint-to-an-existing-table` — https://docs.gitlab.com/development/database/adding_database_indexes/#add-a-unique-index-acting-as-a-constraint-to-an-existing-table; `#unique-indexes-on-nullable-columns`
 
 - [ ] **Data migrations reversible or commented.** Data migrations should be reversible or should come with a comment on why it's no-oped or non-reversible. This applies to all types of migrations (regular, post-deploy, background migrations).
   Source: `doc/development/database_review.md#migration-placement-and-timing`
 
-- [ ] **Multi-database.** GitLab connects to `main` and `ci`; check the migration accounts for this (`restrict_gitlab_migration gitlab_schema:`).
+- [ ] **Multi-database.** Where the app connects to more than one database, check the migration declares which one it targets, so it is not run against the wrong schema.
   Source: `doc/development/migration_style_guide.md#decide-which-database-to-target` — https://docs.gitlab.com/development/migration_style_guide/#decide-which-database-to-target
 
 ### 2.6 Background migration specifics
 
-- [ ] **Time estimates.** Take note of the time estimates provided from the `gitlab-com-database-testing` comment (titled **Database Migrations (on the main database)** etc.) to make sure they adhere to the query performance guidelines (BBM query `1s`, cold cache). Formula: `interval * number of records / max batch size`. Estimates are affected by the optimization mechanism (batch size auto-tuned on last 20 jobs).
+- [ ] **Time estimates.** Take note of the time estimates provided from the migration-testing job's comment (titled **Database Migrations (on the main database)** etc.) to make sure they adhere to the query performance guidelines (BBM query `1s`, cold cache). Formula: `interval * number of records / max batch size`. Estimates are affected by the optimization mechanism (batch size auto-tuned on last 20 jobs).
   Source: `doc/development/database_review.md#background-migration-specifics` — https://docs.gitlab.com/development/database_review/#background-migration-specifics; `doc/development/database/batched_background_migrations.md#calculate-overall-time-estimation-of-a-batched-background-migration`
 
 - [ ] **When BBMs are used.** For data migrations exceeding post-deploy time limits; high-traffic tables; numerous single-row queries over a large dataset. Not for schema migrations.
   Source: `doc/development/database/batched_background_migrations.md#when-to-use-batched-background-migrations` — https://docs.gitlab.com/development/database/batched_background_migrations/#when-to-use-batched-background-migrations
 
-- [ ] **Structure.** Class in `Gitlab::BackgroundMigration` namespace, file in `lib/gitlab/background_migration/`, subclass of `BatchedMigrationJob`, defines `perform`, `operation_name`, `feature_category`; uses the generator (creates `db/post_migrate/..._queue_*.rb`, `spec/migrations/...`, `lib/...`, `spec/lib/...`, and `db/docs/batched_background_migrations/*.yml`). Cursor-based iteration (`cursor :id`) is the default/recommended strategy. Queued in a **post-deployment** migration via `queue_batched_background_migration`; job argument count must match `job_arguments`. `down` uses `delete_batched_background_migration`.
+- [ ] **Structure.** Class in the project's background-migration namespace and directory, subclass of its batched-job base class, defines `perform`, `operation_name`, `feature_category`; uses the generator (creates `db/post_migrate/..._queue_*.rb`, `spec/migrations/...`, `lib/...`, `spec/lib/...`, and a dictionary entry for the background migration). Cursor-based iteration (`cursor :id`) is the default/recommended strategy. Queued in a **post-deployment** migration via `queue_batched_background_migration`; job argument count must match `job_arguments`. `down` uses `delete_batched_background_migration`.
   Source: `doc/development/database/batched_background_migrations.md#how-batched-background-migrations-work` — https://docs.gitlab.com/development/database/batched_background_migrations/#how-batched-background-migrations-work; `#generate-a-batched-background-migration`; `#use-cursor-based-iteration-default`; `#enqueue-a-batched-background-migration`; `#use-job-arguments`
 
 - [ ] **Idempotent and isolated.** Jobs must be idempotent (Sidekiq retries). Must not use application code (models in `app/models`, except `ApplicationRecord` classes); inline models use the correct `ApplicationRecord`/`Ci::ApplicationRecord` — `ActiveRecord::Base` and `ActiveRecord::Base.connection` are disallowed.
@@ -370,7 +370,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **`tables_to_check_for_vacuum`** set when the migration writes to a table other than the one it iterates. Throttling pauses for 10 minutes on: WAL archival queue threshold, active autovacuum on the tables (default on since 18.0), Patroni apdex below SLO, WAL rate threshold.
   Source: `doc/development/database/batched_background_migrations.md#configure-tables-to-check-for-vacuum` — https://docs.gitlab.com/development/database/batched_background_migrations/#configure-tables-to-check-for-vacuum; `#throttling-batched-migrations`
 
-- [ ] **Do not depend on BBM data until finalized.** Finalize with `ensure_batched_background_migration_is_finished` only after the BBM is completed on GitLab.com and was added in or before the last required stop; arguments and `gitlab_schema` must exactly match the enqueue (even if the table's schema has since changed); update `finalized_by` in the dictionary; early finalization raises unless `skip_early_finalization_validation: true`. Dependent migrations declare `DEPENDENT_BATCHED_BACKGROUND_MIGRATIONS` (checked by `Migration::UnfinishedDependencies`). Cleanup (e.g. dropping the migrated column) only in a later major/minor release, never a patch release.
+- [ ] **Do not depend on BBM data until finalized.** Finalize with `ensure_batched_background_migration_is_finished` only after the BBM is completed in production and was added in or before the last required stop; arguments and target schema must exactly match the enqueue (even if the table's schema has since changed); update `finalized_by` in the dictionary; early finalization raises unless `skip_early_finalization_validation: true`. Dependent migrations declare `DEPENDENT_BATCHED_BACKGROUND_MIGRATIONS` (checked by `Migration::UnfinishedDependencies`). Cleanup (e.g. dropping the migrated column) only in a later major/minor release, never a patch release.
   Source: `doc/development/database/batched_background_migrations.md#finalize-a-batched-background-migration` — https://docs.gitlab.com/development/database/batched_background_migrations/#finalize-a-batched-background-migration; `#depending-on-migrated-data`; `#establish-dependencies`; `#cleaning-up-a-batched-background-migration`
 
 - [ ] **Re-queue / stop.** Re-queue: no-op the original `up`/`down`, new PDM that calls `delete_batched_background_migration` first, update dictionary (`milestone`, `queued_migration_version`), clear `finalized_by` if previously finalized. Stop: no-op scheduling migration, PDM deleting the BBM, delete class + specs (single MR).
@@ -379,10 +379,10 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **Tests required** for the queueing migration, the BBM itself, and the cleanup migration (use `spy` doubles with `have_received`).
   Source: `doc/development/database/batched_background_migrations.md#testing` — https://docs.gitlab.com/development/database/batched_background_migrations/#testing
 
-- [ ] **Upgrade notes** required when the migration operates on large tables, exposes configuration for scope, or has dependencies. Release-post announcement if part of an important upgrade. EE-only BBMs need an empty FOSS class.
+- [ ] **Upgrade notes** required when the migration operates on large tables, exposes configuration for scope, or has dependencies. Release-post announcement if part of an important upgrade. A licensed-tier-only background migration needs a matching empty class on the base side, if the project separates the two.
   Source: `doc/development/database/batched_background_migrations.md#writing-upgrade-notes-for-customers` — https://docs.gitlab.com/development/database/batched_background_migrations/#writing-upgrade-notes-for-customers; `#notes`; `#batched-background-migrations-for-ee-only-features`
 
-- [ ] **Partitioned parallelization patterns** (per-partition or view-based) are GitLab.com-only, not recommended for self-managed; require Database team consultation.
+- [ ] **Partitioned parallelization patterns** (per-partition or view-based) apply to the hosted environment only, not to customer-operated ones; require Database team consultation.
   Source: `doc/development/database/batched_background_migrations.md#partitioned-tables` — https://docs.gitlab.com/development/database/batched_background_migrations/#partitioned-tables
 
 ### 2.7 New table and column reviews
@@ -422,7 +422,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **Every new/modified query has SQL + Database Lab plan** in the MR description.
   Source: same.
 
-- [ ] **Parameters reflect data distribution** (the gitlab-org IDs in section 3).
+- [ ] **Parameters reflect data distribution** (the representative ids described in section 3).
   Source: same.
 
 - [ ] **Plans checked and improvements suggested** (restructure query, add/remove indexes). Open questions go to `#database_maintainers`.
@@ -442,7 +442,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 
 ### 2.9 Removals (columns, tables, indexes, FKs)
 
-- [ ] **Dropping a column is three releases.** M: `ignore_column :col, remove_with: 'M+2', remove_after: '<date after M+1 release>'` in the CE model (EE only if model is EE-only), remove all code references including validations; views referencing the column also get `ignore_columns`. M+1: post-deployment migration `remove_column` — transactional if no indexes/constraints belong to the column; otherwise `disable_ddl_transaction!` with `add_column(..., if_not_exists: true)` + `add_concurrent_index` in `down`; if referenced by a view, recreate the view without the column first (reverse order in `down`). M+2: remove the ignore rule — only with the `remove_with` release and after `remove_after`. Ignoring and dropping must not happen in the same release.
+- [ ] **Dropping a column is three releases.** M: `ignore_column :col, remove_with: 'M+2', remove_after: '<date after M+1 release>'` in the model (on the licensed side only if the model itself is licensed-only), remove all code references including validations; views referencing the column also get `ignore_columns`. M+1: post-deployment migration `remove_column` — transactional if no indexes/constraints belong to the column; otherwise `disable_ddl_transaction!` with `add_column(..., if_not_exists: true)` + `add_concurrent_index` in `down`; if referenced by a view, recreate the view without the column first (reverse order in `down`). M+2: remove the ignore rule — only with the `remove_with` release and after `remove_after`. Ignoring and dropping must not happen in the same release.
   Source: `doc/development/database/avoiding_downtime_in_migrations.md#dropping-columns` — https://docs.gitlab.com/development/database/avoiding_downtime_in_migrations/#dropping-columns
 
 - [ ] **Renaming a column** (small tables only): regular migration `rename_column_concurrently` + ignore column (M), post-deploy `cleanup_concurrent_column_rename` (M), remove ignore (M+1). Large tables use BBMs over multiple milestones.
@@ -457,7 +457,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - [ ] **Renaming a table** requires downtime unless the multi-release rename process is followed; if not in use yet, drop and recreate.
   Source: `doc/development/database/avoiding_downtime_in_migrations.md#renaming-tables` — https://docs.gitlab.com/development/database/avoiding_downtime_in_migrations/#renaming-tables
 
-- [ ] **Dropping an index.** Verify unused on GitLab.com **and** Self-Managed: Grafana `pg_stat_user_indexes_idx_scan` for at least the last 6 months; postgres.ai `H002 Unused Indexes` report (only since stats reset); `rspec:merge-auto-explain-logs` artifact; Kibana `json.sql` logs (last 7 days only); manual codebase search; index origin history. For partitioned tables, all child indexes must be unused. Check composite index column order before assuming a replacement exists. Large tables: consider async drop. Housekeeper `CleanupUnusedIndexes` MRs are proposals, not verdicts; keep list at `keeps/cleanup_unused_indexes/index_keep_list.yml`.
+- [ ] **Dropping an index.** Verify unused in the hosted environment **and** in customer-operated ones: metrics for `pg_stat_user_indexes_idx_scan` over at least the last 6 months; an unused-index report from the plan service (only counts since the stats were reset); the auto-explain artifact from the test suite, if the project produces one; query logs (usually a short retention window); manual codebase search; index origin history. For partitioned tables, all child indexes must be unused. Check composite index column order before assuming a replacement exists. Large tables: consider async drop. Automated unused-index cleanup proposals are proposals, not verdicts; the project usually keeps an explicit keep-list to opt individual indexes out.
   Source: `doc/development/database/adding_database_indexes.md#dropping-unused-indexes` — https://docs.gitlab.com/development/database/adding_database_indexes/#dropping-unused-indexes; `#verifying-that-an-index-is-unused`; `#composite-index-column-order`; `#automated-detection-and-removal`
 
 - [ ] **Removing a FK.** Post-deployment migration, particularly for large tables; `with_lock_retries`; deadlock avoidance by locking `parent,child` order (or `reverse_lock_order`); partitioned tables use `remove_partitioned_foreign_key`. Replacing a FK (e.g. `CASCADE`→`SET NULL`): add new FK first, then remove old — PostgreSQL honors the most recent so protection is never lost.
@@ -487,11 +487,7 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 - The query plan for each raw SQL query, with the link to the plan following each raw SQL snippet.
 - Provide a link to the plan generated using the `explain` command in the postgres.ai chatbot. The `explain` command runs `EXPLAIN ANALYZE` (Database Lab runs `explain (analyze, buffers)` and returns a shareable console report).
   - If it's not possible to get an accurate picture in Database Lab, seed a development environment and provide `EXPLAIN ANALYZE` output via explain.depesz.com or explain.dalibo.com — paste both the plan and the query.
-- **The plan must hit enough data.** Use the IDs of:
-  - The `gitlab-org` namespace (`namespace_id = 9970`), for queries involving a group.
-  - The `gitlab-org/gitlab-foss` (`project_id = 13083`) or the `gitlab-org/gitlab` (`project_id = 278964`) projects, for queries involving a project.
-    - For membership queries, `project_namespace_id` may be required: `15846663` (`gitlab-org/gitlab`) and `15846626` (`gitlab-org/gitlab-foss`).
-  - The `gitlab-qa` user (`user_id = 1614863`), for queries involving a user; optionally your own `user_id` or a user with a long history in the project/group.
+- **The plan must hit enough data.** Use the ids of the largest real records of each kind the query touches — the biggest tenant/group, the biggest project or account, a user with a long history. The upstream docs name specific production ids for this; **the profile names the equivalents for the project under review**, and the review says which ids were used.
   - No query plan should return 0 records or fewer records than the provided limit (if a limit is included). If a query is used in batching, a proper example batch with adequate included results should be identified and provided.
 - **`UPDATE` always returns 0 records.** To identify the rows it updates, check the lines below the `ModifyTable` node: the row count on the child `-> Index Scan` (e.g. `rows=1`) shows how many rows were updated.
 - New feature with no production data: analyze from a local environment, or use postgres.ai `exec` to update data (`exec UPDATE issues SET ...`) and create tables/columns (`exec ALTER TABLE issues ADD COLUMN ...`).
@@ -501,9 +497,9 @@ Grouped as `database_review.md#how-to-review-for-database` groups them, with sup
 
 **Database Lab mechanics** (`database/database_lab.md` — https://docs.gitlab.com/development/database/database_lab/):
 
-- Console: console.postgres.ai, Google SSO, "Joe Bot" → "Ask Joe". Pick the database: `gitlab-production-main` (most), `gitlab-production-ci` (CI tables), `gitlab-production-registry`. Indexes exist in both `main` and `ci`; match the table's `gitlab_schema`.
+- Console: the plan service's web UI (the profile names it and how to sign in). Pick the clone matching the database the table lives in — a multi-database app has one clone per database, and the same index name can exist in more than one.
 - `explain <query>` → plan + link. `exec <DDL or DML>` → runs the statement and returns only the execution time (this is how index-creation timing for the MR description is obtained; also `exec ANALYZE <table>`, `exec SET max_parallel_workers_per_gather = 0`). `reset` → fresh clone. `\d <index_name>` → index status; `invalid` suffix means the index is invalid; missing index → `Did not find any relation` error.
-- CLI: `npm install -g postgresai`; `postgresai joe explain "<sql>" --project gitlab-production-main`; 25-second default budget, then `postgresai joe result <id>`; `--json` for scripts.
+- CLI: the plan service usually ships a CLI that takes a SQL string and a project/clone name, with a short default wait budget and a follow-up command to fetch the result by id. The profile records the exact invocation.
 - Snapshot roughly every 4 hours; Database Lab has a delay of a few hours. Clones are removed after 12 hours. `psql` access requires `AllFeaturesUser` + an access request.
 - Guarantees a structurally identical plan and the same overall buffer count as production, but cache state and I/O speed may differ, so timings differ.
 
@@ -520,7 +516,7 @@ Source: `doc/development/database/understanding_explain_plans.md` — https://do
 5. **Cold vs warm cache.** Warm: only `shared hit`. Cold: `read` present (Database Lab: "reads: N from the OS file cache, including disk I/O"). Timing guidelines apply to both. For batched queries, vary range and batch size. (`query_performance.md#cold-and-warm-cache`)
 6. **Compare on buffers, not only timing.** Timing is volatile (cache state); optimization means reducing buffers (read and hit); reduced timing follows. (`#optimizing-queries`)
 7. **Before recommending an index**: check existing indexes (`\d table`), whether the query can reuse or slightly alter one; only add a new one if none can be used. A `Filter` on an index scan may mean the index is not partial enough. Selectivity matters — an index present does not guarantee use; a query returning 98% of a table cannot be indexed into speed and may need rewriting. (`#optimizing-queries`, `#queries-that-cant-be-optimized`, `#cardinality-and-selectivity`, `#rewriting-queries`)
-8. **What makes a bad plan** (`#what-makes-a-bad-plan`): sequential scans on large tables; filters that remove a lot of rows; a step requiring *a lot* of buffers (for example, an index scan for GitLab.com that requires more than 512 MB). Aim for a query that:
+8. **What makes a bad plan** (`#what-makes-a-bad-plan`): sequential scans on large tables; filters that remove a lot of rows; a step requiring *a lot* of buffers (for example, an index scan that requires more than 512 MB). Aim for a query that:
    1. Takes no more than 10 milliseconds (target time in SQL per request is around 100 milliseconds).
    2. Does not use an excessive number of buffers relative to the workload (retrieving ten rows shouldn't require 1 GB).
    3. Does not spend a long time in disk IO (`track_io_timing` must be enabled for this data).
@@ -538,7 +534,7 @@ Source: `doc/development/database/understanding_explain_plans.md` — https://do
 
 https://docs.gitlab.com/development/migration_style_guide/#how-long-a-migration-should-take
 
-In general, all migrations for a single deploy shouldn't take longer than 1 hour for GitLab.com. The following guidelines are not hard rules, they were estimated to keep migration duration to a minimum. All durations should be measured against GitLab.com.
+In general, all migrations for a single deploy shouldn't take longer than 1 hour in production. The following guidelines are not hard rules, they were estimated to keep migration duration to a minimum. All durations should be measured against production.
 
 | Migration Type             | Recommended Duration | Notes |
 |----------------------------|----------------------|-------|
@@ -546,7 +542,7 @@ In general, all migrations for a single deploy shouldn't take longer than 1 hour
 | Post-deployment migrations | `<= 10 minutes`      | A valid exception are schema changes, since they must not happen in background migrations. Concurrent operations such as index creation have a separate `20 minute` limit. |
 | Background migrations      | `> 10 minutes`       | Since these are suitable for larger tables, it's not possible to set a precise timing guideline, however, any single query must stay below `1 second` execution time with cold caches. |
 
-When the `db:gitlabcom-database-testing` pipeline reports an index creation taking longer than 20 minutes, create the index asynchronously. The testing pipeline runs on a database clone that can underestimate actual GitLab.com execution times, so this threshold is intentionally conservative.
+When the migration-testing CI job reports an index creation taking longer than 20 minutes, create the index asynchronously. The testing pipeline runs on a database clone that can underestimate actual production execution times, so this threshold is intentionally conservative.
 
 ### 4.2 Query timing — `database/query_performance.md#timing-guidelines-for-queries`
 
@@ -556,8 +552,8 @@ https://docs.gitlab.com/development/database/query_performance/#timing-guideline
 |-------------------------------------------|--------------------|-------|
 | General queries                           | `100ms`            | This is not a hard limit, but if a query is getting above it, it is important to spend time understanding why it can or cannot be optimized. |
 | Queries in a migration                    | `100ms`            | This is different than the total migration time. |
-| Concurrent operations in a migration      | `5min`             | Concurrent operations do not block the database, but they block the GitLab update. This includes operations such as `add_concurrent_index`, `add_concurrent_foreign_key`, and validate constraint (for example, adding text limit via `add_text_limit`). |
-| Concurrent operations in a post migration | `20min`            | Concurrent operations do not block the database, but they block the GitLab post update process. This includes operations such as `add_concurrent_index`, `add_concurrent_foreign_key`, and validate constraint (for example, adding text limit via `add_text_limit`). If index creation exceeds 20 minutes, consider async index creation. |
+| Concurrent operations in a migration      | `5min`             | Concurrent operations do not block the database, but they block the application update. This includes operations such as `add_concurrent_index`, `add_concurrent_foreign_key`, and validate constraint (for example, adding text limit via `add_text_limit`). |
+| Concurrent operations in a post migration | `20min`            | Concurrent operations do not block the database, but they block the application's post-update process. This includes operations such as `add_concurrent_index`, `add_concurrent_foreign_key`, and validate constraint (for example, adding text limit via `add_text_limit`). If index creation exceeds 20 minutes, consider async index creation. |
 | Background migrations                     | `1s`               | |
 | Service Ping                              | `1s`               | See the Metrics Instrumentation docs for more details. |
 
@@ -565,20 +561,20 @@ https://docs.gitlab.com/development/database/query_performance/#timing-guideline
 
 | Threshold | Meaning | Source |
 |---|---|---|
-| 15 seconds | Cumulative query time in a single migration transaction must fit comfortably within this on GitLab.com; also the production `statement_timeout` | `database_review.md#timing-and-performance-standards`; `migration_style_guide.md#heavy-operations-in-a-single-transaction` |
+| 15 seconds | Cumulative query time in a single migration transaction must fit comfortably within this in production; also the production `statement_timeout` | `database_review.md#timing-and-performance-standards`; `migration_style_guide.md#heavy-operations-in-a-single-transaction` |
 | 10 minutes | Database Lab `CREATE INDEX CONCURRENTLY` runtime above which the index moves to a post-migration | `database_review.md#preparation-when-adding-migrations` |
 | 1h | Database Lab index execution time above which the index must be created asynchronously (+ maintainer notifies Release Managers) | `database_review.md#large-table-and-size-restrictions` |
-| 20 minutes | `db:gitlabcom-database-testing` index creation time above which async creation is required | `migration_style_guide.md#how-long-a-migration-should-take` |
+| 20 minutes | the migration-testing CI job index creation time above which async creation is required | `migration_style_guide.md#how-long-a-migration-should-take` |
 | 50 GB / 50 GB / 100 GB | Max table size after adding an index / FK column / column | `large_tables_limitations.md#table-size-restrictions` |
 | 15 indexes | Per-table index limit | `adding_database_indexes.md#index-limitations` |
 | 1,000 records | "Small table" — index may be unnecessary; `remove_index` acceptable in a transaction; >1000 invalid records suggests BBM for FK cleanup | `adding_database_indexes.md`; `migration_style_guide.md#removing-indexes`; `foreign_keys.md#data-migration-to-fix-existing-records` |
-| 512 MB | Buffers for a single index scan on GitLab.com considered "a lot" | `understanding_explain_plans.md#what-makes-a-bad-plan` |
+| 512 MB | Buffers for a single index scan considered "a lot" | `understanding_explain_plans.md#what-makes-a-bad-plan` |
 | 10 ms / 100 ms | Per-query aim / per-request SQL target | `understanding_explain_plans.md#what-makes-a-bad-plan` |
 | 64 KB | Recommended max `size_limit` for JSONB schema validation | `migration_style_guide.md#storing-json-in-database` |
 | 3 weeks | Migration timestamp best-practice freshness | `migration_style_guide.md#migration-timestamp-age` |
 | 50 retries / 40 minutes | `with_lock_retries` worst case | `migration_style_guide.md#how-the-helper-method-works` |
 | 10 minutes | BBM pause duration on a throttling stop signal | `batched_background_migrations.md#throttling-batched-migrations` |
-| 2 / 4 | Default / GitLab.com parallel BBMs | `batched_background_migrations.md#execution-mechanism` |
+| 2 / 4 | Default / hosted-environment parallel BBMs | `batched_background_migrations.md#execution-mechanism` |
 | 4 hours / 12 hours | Database Lab snapshot cadence / clone lifetime | `database_lab.md` |
 
 ---
@@ -589,7 +585,7 @@ https://docs.gitlab.com/development/database/query_performance/#timing-guideline
 
 - What is the anticipated growth for the new table over the next 3 months, 6 months, 1 year? What assumptions are these based on?
 - How many reads and writes per hour would you expect this table to have in 3 months, 6 months, 1 year? Under what circumstances are rows updated? What assumptions are these based on?
-- Based on the anticipated data volume and access patterns, does the new table pose an availability risk to GitLab.com or GitLab Self-Managed instances? Does the proposed design scale to support the needs of GitLab.com and GitLab Self-Managed customers?
+- Based on the anticipated data volume and access patterns, does the new table pose an availability risk to the hosted service or customer-operated instances? Does the proposed design scale to support the needs of both hosted and customer-operated deployments?
 
 Reviewer counterpart: Are the stated access patterns and volume reasonable? Do the assumptions they're based on seem sound? Do these patterns pose risks to stability?
 
@@ -647,9 +643,9 @@ Each question is derived from a statement in the docs that the reviewer should v
 1. The MR description is missing raw SQL and/or Database Lab plan links for the new or changed queries — can you add them (one per query variation, plan link directly after each SQL snippet)? If not, I'll reassign the MR back to you per process. [`database_review.md#required`, `#roles-and-process`]
 2. For the changed query, can you provide the raw SQL and plan for both the old and the new version? [`database_review.md#queries`]
 3. Is this the final executed SQL (with limits, offsets, pagination, scopes), e.g. from `log/development.log` or the performance bar, rather than an intermediate relation? [`database_review.md#query-plans`, `#tips-for-finding-the-sql-executed-by-the-application`]
-4. Have you run the `db:gitlabcom-database-testing` job? Can you link the results and comment on migration runtimes and any warnings? [`database_review.md#preparation-when-adding-migrations`]
+4. Have you run the project's migration-testing CI job? Can you link the results and comment on migration runtimes and any warnings? [`database_review.md#preparation-when-adding-migrations`]
 5. `db:check-migrations` / `db:check-schema` are failing — is this one of the known false positives (column reordering after rollback, `pg_dump` ordering), or does the branch need a rebase? [`dbcheck-migrations-job.md#troubleshooting`]
-6. Which database(s) does this migration target (`main`, `ci`, `sec`), and is `restrict_gitlab_migration gitlab_schema:` set accordingly? [`migration_style_guide.md#decide-which-database-to-target`]
+6. Which database does this migration target, and does it declare that target so it is not run against the wrong schema? [`migration_style_guide.md#decide-which-database-to-target`]
 
 **Query plans and data**
 7. The plan returns 0 rows (or fewer than the `LIMIT`) — can you regenerate it against representative data (`namespace_id = 9970`, `project_id = 13083` or `278964`, `project_namespace_id = 15846663`/`15846626`, `user_id = 1614863`) or a proper example batch? [`database_review.md#query-plans`]
@@ -664,11 +660,11 @@ Each question is derived from a statement in the docs that the reviewer should v
 16. Which combinations of filter/sort options in this finder are expected to time out, and is that acceptable? [`query_performance.md#slow-list-views-and-apis`]
 
 **Migrations — general**
-17. What is the estimated execution time on GitLab.com, and which migration type did you choose based on that (regular ≤ 3 min, post-deploy ≤ 10 min, BBM otherwise)? [`database_review.md#migration-placement-and-timing`; `migration_style_guide.md#how-long-a-migration-should-take`]
+17. What is the estimated execution time in production, and which migration type did you choose based on that (regular ≤ 3 min, post-deploy ≤ 10 min, BBM otherwise)? [`database_review.md#migration-placement-and-timing`; `migration_style_guide.md#how-long-a-migration-should-take`]
 18. Is this schema change critical for the application to operate? If not, why is it a regular migration rather than post-deploy (and vice versa for `create_table`/`add_column`, which must be regular)? [`migration_style_guide.md#choose-an-appropriate-migration-type`]
 19. How did you test reversibility? Can you add the comment describing that, and (for a non-reversible data migration) a `down` no-op with an explanation plus a description of how the data could be recovered in an incident? [`migration_style_guide.md#reversibility`; `database_review.md#preparation-when-adding-data-migrations`]
 20. What is the user-facing impact if this data migration goes wrong (e.g. "Issues would go missing from Epics")? Roughly how many records are modified/deleted per the plan? Does the MR need `~data-deletion`? [`database_review.md#preparation-when-adding-data-migrations`]
-21. Does the cumulative query time in this single-transaction migration fit comfortably within 15 seconds on GitLab.com? [`database_review.md#timing-and-performance-standards`]
+21. Does the cumulative query time in this single-transaction migration fit comfortably within 15 seconds in production? [`database_review.md#timing-and-performance-standards`]
 22. Why is `disable_ddl_transaction!` present/absent — is there a concurrent operation, `with_lock_retries`, batching, or a non-PostgreSQL/multi-database target that requires it? [`migration_style_guide.md#disable-transaction-wrapped-migration`]
 23. This touches a high-traffic table — is `with_lock_retries` used, and are all locks acquired before DDL (or the migration split so only one lock is needed at a time)? [`migration_style_guide.md#when-to-use-the-helper-method`, `#transactional-migrations`]
 24. This migration adds/removes more than one FK — can you split them into separate migrations? [`migration_style_guide.md#creating-a-new-table-when-we-have-two-foreign-keys`; `foreign_keys.md#adding-the-fk-constraint-not-valid`]
@@ -687,8 +683,8 @@ Each question is derived from a statement in the docs that the reviewer should v
 35. For the temporary index: is it prefixed `tmp_`, is there a follow-up removal issue, and is it referenced in a migration comment? [`adding_database_indexes.md#temporary-indexes`]
 36. For the async index: is the follow-up "Synchronous Database Index" issue created and linked in a comment? Is the `structure.sql` change deferred to the second MR? [`adding_database_indexes.md#schedule-the-index-to-be-created`; `migration_style_guide.md#schema-changes`]
 37. Before dropping this index: what do the 6-month Grafana `pg_stat_user_indexes_idx_scan` stats show, which queries used it (auto-explain logs, Kibana, codebase search), can other indexes serve them given composite column order, and is it used on Self-Managed or by infrequent cron jobs? [`adding_database_indexes.md#verifying-that-an-index-is-unused`, `#composite-index-column-order`]
-38. Is this index for the PDM shipped in the same MR as the code that needs it, or (if slow on GitLab.com) in a separate first MR / behind a feature flag? Does the app work without it in the same release for Self-Managed? [`adding_database_indexes.md#add-an-index-to-support-new-or-updated-queries`]
-39. Unique index on an existing table: have duplicates been removed/fixed first, across multiple post-deploy migrations and releases? Is it scoped for Cells? [`adding_database_indexes.md#add-a-unique-index-acting-as-a-constraint-to-an-existing-table`]
+38. Is this index for the PDM shipped in the same MR as the code that needs it, or (if slow in production) in a separate first change request / behind a feature flag? Does the app work without it in the same release for customer-operated deployments? [`adding_database_indexes.md#add-an-index-to-support-new-or-updated-queries`]
+39. Unique index on an existing table: have duplicates been removed/fixed first, across multiple post-deploy migrations and releases? Is it scoped to the tenant-partitioning key, if the project has one? [`adding_database_indexes.md#add-a-unique-index-acting-as-a-constraint-to-an-existing-table`]
 
 **Foreign keys**
 40. Is there an index whose leading column is the FK column, added before the FK? [`foreign_keys.md#indexes`]
@@ -700,13 +696,13 @@ Each question is derived from a statement in the docs that the reviewer should v
 
 **New tables and columns**
 46. What is the anticipated growth at 3/6/12 months, reads and writes per hour, and update circumstances — and what assumptions underlie those numbers? [`database_review.md#preparation-when-adding-tables`]
-47. Does the design pose an availability risk to GitLab.com or Self-Managed, and does it scale for both? [`database_review.md#preparation-when-adding-tables`]
+47. Does the design pose an availability risk to the hosted service or to customer-operated deployments, and does it scale for both? [`database_review.md#preparation-when-adding-tables`]
 48. Will any single row be updated by many transactions concurrently (running tallies, counters)? [`layout_and_access_patterns.md#high-frequency-updates-especially-to-the-same-row`]
 49. Are the new columns accessed on their own in a one-to-one relationship — should they be a separate table instead of widening this one? [`layout_and_access_patterns.md#wide-tables`; `large_tables_limitations.md#using-has_one-relationships`]
 50. Are columns ordered by descending type size with variable-size columns last? [`ordering_table_columns.md`]
-51. Is there a `db/fixtures/development/` seed and a `db/docs/<table>.yml` dictionary entry (with `gitlab_schema`, `feature_categories`, `milestone`, `table_size`, sharding key)? [`database_review.md#preparation-when-adding-tables`; `database_dictionary.md#adding-tables`]
+51. Is there a development seed and a table-dictionary entry (target schema, owning feature category, milestone, expected size, tenant-partitioning key)? [`database_review.md#preparation-when-adding-tables`; `database_dictionary.md#adding-tables`]
 52. Is this static data that belongs in a fixed items model rather than a table? [`database_review.md#preparation-when-adding-tables`]
-53. Is this column purely for GitLab.com analytics/reporting on a high-traffic table? [`migration_style_guide.md#high-traffic-tables`]
+53. Is this column purely for analytics or reporting on a high-traffic table? [`migration_style_guide.md#high-traffic-tables`]
 54. Does the JSONB column have a `JsonSchemaValidator` with `size_limit` (64 KB recommended)? If the schema uses `additionalProperties: false`, is the property change split across deployments/releases? [`migration_style_guide.md#storing-json-in-database`; `avoiding_downtime_in_migrations.md#changing-jsonjsonb-columns-with-schema-validation`]
 55. Do timestamps use the `_with_timezone` helpers? Is `integer` sufficient or is `limit: 8` needed? [`migration_style_guide.md#timestamp-column-type`, `#integer-column-type`]
 
@@ -728,52 +724,60 @@ Each question is derived from a statement in the docs that the reviewer should v
 68. Does the sub-batch update run as a single query with a limit guard in a `MATERIALIZED` CTE, and are exceptions re-raised rather than swallowed? [`batched_background_migrations.md#best-practices`]
 69. How is newly created data handled during the migration (trigger, model/service, or dual writes)? [`batched_background_migrations.md#enqueue-a-batched-background-migration`, `#cleaning-up-a-batched-background-migration`]
 70. Does any code in this MR depend on the migrated data before the BBM is finalized? Is `DEPENDENT_BATCHED_BACKGROUND_MIGRATIONS` declared where needed? [`batched_background_migrations.md#depending-on-migrated-data`, `#establish-dependencies`]
-71. For the finalization: was the BBM added in or before the last required stop, is it complete on GitLab.com, do arguments and `gitlab_schema` exactly match the enqueue, and is `finalized_by` updated in the dictionary? [`batched_background_migrations.md#finalize-a-batched-background-migration`]
+71. For the finalization: was the BBM added in or before the last required stop, is it complete in production, do arguments and target schema exactly match the enqueue, and is `finalized_by` updated in the dictionary? [`batched_background_migrations.md#finalize-a-batched-background-migration`]
 72. Are tests present for the queue migration, the job, and the cleanup? Are upgrade notes needed (large table, config options, dependencies), and should the release post mention it? [`batched_background_migrations.md#testing`, `#writing-upgrade-notes-for-customers`, `#notes`]
 
 ---
 
 # Applying the checklist in this skill
 
-The sections above are the gitlab-org/gitlab docs, distilled. This part is the skill's own
-guidance on using them in a review: what applies per repo, the local checks a reviewer runs,
-and what to do when a production plan is not available.
+The sections above are the upstream project's public developer documentation, distilled.
+This part is the skill's own guidance on using them in a review: what applies to the project
+under review, the local checks a reviewer runs, and what to do when a production plan is not
+available.
 
-## Applicability by repo
+## Applicability to the project under review
 
-| Area | gitlab-org/gitlab | customers-gitlab-com |
+The checklist above assumes a large Rails monolith with a dedicated database-review process:
+a committed schema dump, per-migration checksum files, a table dictionary, a managed
+query-plan service, and post-deploy migrations as a distinct type. **A smaller project has
+some of that and not the rest.** The profile declares which, and each item the project does
+not have is recorded as `n/a` with the reason — never skipped.
+
+Worked example of how a profile narrows it (a project whose profile declares a single Rails
+app, one deploy target with no release train, a committed schema dump, no checksum files, no
+table dictionary, no managed plan service, and a read-only production replica reachable
+through the profile's access path):
+
+| Area | Upstream (as documented above) | How this profile narrows it |
 |---|---|---|
-| Migration reversibility, `down`, transaction vs `disable_ddl_transaction!` | as written | as written (`bin/rails db:rollback`) |
-| `db/structure.sql` only has the MR's changes | as written | as written; Danger warns if missing |
-| `db/schema_migrations/<ts>` checksum files | required | n/a (Rails default `schema_migrations` table only) |
-| `db/docs/<table>.yml` dictionary | required, same commit | n/a; the JSON column comment (`owner`, `data_classification`, `description`) is the equivalent record |
-| `db:check-migrations`, `db:gitlabcom-database-testing` jobs | required | n/a; the reviewer runs migrate / rollback / migrate locally and records timings |
-| Database Lab / postgres.ai plans | required for every new or changed query | n/a; plans come from the Teleport production read-only replica (see profile), staging replica as fallback with the caveat stated |
-| Large-table size limits (50 GB index / 100 GB column), 15-index limit | as written | no formal limits; ask for the table's size and row count from the replica and apply the same reasoning |
-| Timing table (regular ≤ 3 min, post-deploy ≤ 10 min, query < 100 ms, transaction < 15 s) | as written | use as the bar; there is no post-deploy migration type, so anything that would be post-deploy on gitlab.com needs a deliberate deploy plan and a question to the author |
-| Batched background migrations | as written | n/a; long data changes run as a Sidekiq job or rake task, reviewed under "data migration" items |
-| Column ordering, FK indexes, `ON DELETE`, `bigint` FKs, timestamps with time zone, JSONB size limit | as written | as written |
-| Dropping columns over three releases with `ignore_column` | as written | there is one deploy target, not a release train; still require `ignore_columns` deploy first, then drop, because the running app must not reference a column mid-deploy |
-| Query plan representative ids (9970, 278964, 1614863) | as written | pick the largest real customer / subscription / namespace on the replica and say which |
+| Migration reversibility, `down`, transaction vs `disable_ddl_transaction!` | as written | as written (the profile's rollback command) |
+| Schema dump contains only this change's changes | as written | as written; the CI policy bot warns if the dump was not updated |
+| Per-migration checksum files | required | `n/a` (the framework's default migrations table only) |
+| Table dictionary file per table | required, same commit | `n/a`; a structured comment on the table or column (owner, data classification, description) is the equivalent record |
+| Dedicated migration-testing CI jobs | required | `n/a`; the reviewer runs migrate / rollback / migrate locally and records timings |
+| Managed query-plan service | required for every new or changed query | `n/a`; plans come from the production read-only replica (see profile), a staging replica as fallback with the caveat stated |
+| Large-table size limits, index-count limit | as written | no formal limits; ask for the table's size and row count from the replica and apply the same reasoning |
+| Timing table (regular ≤ 3 min, post-deploy ≤ 10 min, query < 100 ms, transaction < 15 s) | as written | use as the bar; with no post-deploy migration type, anything that would be post-deploy upstream needs a deliberate deploy plan and a question to the author |
+| Batched background migrations | as written | `n/a`; long data changes run as a background job or task, reviewed under the "data migration" items |
+| Column ordering, foreign-key indexes, `ON DELETE`, `bigint` foreign keys, timestamps with time zone, JSONB size limit | as written | as written |
+| Dropping columns over three releases with `ignore_column` | as written | one deploy target, not a release train; still require the ignore-column deploy first, then the drop, because the running app must not reference a column mid-deploy |
+| Query plans run against representative row ids | as written | pick the largest real record of each kind on the replica and say which |
 
-Every `n/a` is recorded as `n/a (customers-dot)` in the Phase 4 table, not skipped.
+Every `n/a` is recorded with the project's name and the reason in the Phase 4 table, not skipped.
 
-## Local migration checks (both repos, Phase 3 step 3)
+## Local migration checks (Phase 3 step 3)
 
-Run on the MR branch with the baseline snapshot already taken:
+Run on the author's branch with the baseline snapshot already taken. The commands below are
+the single-database Rails shape; the profile gives the project's own (a multi-database app
+scopes each task to one database, and the schema dump may be named differently):
 
 ```sh
-# customers-dot
 time bin/rails db:migrate                        # record wall time per migration from the output
-git diff --stat db/structure.sql                 # only the MR's tables/columns/indexes may appear
-time bin/rails db:rollback STEP=<n>              # n = number of migrations the MR adds
-git diff --quiet db/structure.sql && echo "structure back to base"
+git diff --stat db/schema.rb                     # only this change's tables/columns/indexes may appear
+time bin/rails db:rollback STEP=<n>              # n = number of migrations the change adds
+git diff --quiet db/schema.rb && echo "schema back to base"
 bin/rails db:migrate                             # leave it migrated for Phase 5
-
-# gitlab (database-scoped)
-VERSION=<ts> time bundle exec rails db:migrate:main
-VERSION=<ts> time bundle exec rails db:migrate:down:main
-git checkout master -- db/structure.sql && VERSION=<ts> bundle exec rails db:migrate:main
 ```
 
 Then, for each migration file, read it against § 2.1–2.5 above and answer: which lock does
@@ -781,9 +785,9 @@ each statement take, on which table, and for how long on production-sized data? 
 timing on a small dev database says nothing about that; it only proves the migration runs
 and reverses. Say so in the record.
 
-`bundle exec rubocop <migration files>`: in gitlab-org/gitlab the `Migration/*` cops encode
-many items above; in customers-dot only generic cops run, so the items must be checked by
-reading.
+Lint the migration files with the project's linter. Some projects ship migration-specific
+cops that encode many items above; where only generic rules run, the items must be checked
+by reading. The profile says which.
 
 ## Query plans: what to demand and how to read one
 
@@ -834,5 +838,5 @@ For a new table, § 2.7 and § 5 are mostly questions rather than checks. Draft 
 (§ 6 items 46–55), send with the understanding-confirmation comment so the author answers
 once, and hold the DB verdict until the answers are in. Meanwhile verify what can be
 verified from the migration alone: column order (§ 5.3), FK + index + `ON DELETE`,
-`bigint` FKs, timestamps with time zone, `NOT NULL` and limits on text columns, and, in
-customers-dot, the JSON column comments.
+`bigint` FKs, timestamps with time zone, `NOT NULL` and limits on text columns, and any
+equivalent table-documentation record the profile names.

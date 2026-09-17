@@ -25,9 +25,30 @@ done
 mkdir -p "$TARGET"
 
 # --- skills -----------------------------------------------------------------
+# review-mr keeps a local, un-synced profiles/ per machine (e.g. a private repo's
+# remote, bot username, label vocabulary) that must never be overwritten by this
+# repo's generic copy and must never be written back into it. It is installed
+# file-by-file below instead of as one linked/copied directory.
 for skill in "$REPO_DIR"/skills/*/; do
   name="$(basename "$skill")"
   dest="$TARGET/$name"
+
+  if [ "$name" = "review-mr" ]; then
+    # A previous install may have symlinked $dest to the repo's skill dir as one
+    # unit. mkdir/rm -rf below must operate on a real directory at $dest, never
+    # follow that symlink back into the repo (which would delete repo files and
+    # write profiles/ into the repo itself).
+    if [ -L "$dest" ]; then rm -f "$dest"; fi
+    mkdir -p "$dest/profiles"
+    for sub in SKILL.md references; do
+      subdest="$dest/$sub"
+      if [ -e "$subdest" ] || [ -L "$subdest" ]; then rm -rf "$subdest"; fi
+      if [ "$MODE" = "--copy" ]; then cp -R "${skill%/}/$sub" "$subdest"
+      else ln -s "${skill%/}/$sub" "$subdest"; fi
+    done
+    echo "$([ "$MODE" = "--copy" ] && echo copied || echo linked):   $name (SKILL.md, references/; profiles/ left untouched)"
+    continue
+  fi
 
   if [ -e "$dest" ] || [ -L "$dest" ]; then
     echo "replacing existing: $name"
