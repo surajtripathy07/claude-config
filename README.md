@@ -8,8 +8,7 @@ Portable Claude Code configuration — personal skills installable on any device
 |---|---|
 | `handoff` | End-of-session handover note capturing what was achieved and what's next |
 | `git-commit` | Commit message conventions (what/why, type::, supervision:: labels) |
-| `write-goal` | Writes an executable goal file into `docs/goals/` from repo state |
-| `pending-decisions` | Surfaces every pending maintainer decision as a decision brief |
+| `write-goal` | Writes an executable goal file into `docs/goals/` from whatever repo state exists (nothing required) |
 | `own-it` | Author-depth walkthrough of a change or decision: mechanism, reasoning, verification, rebuild path |
 | `orchestrate` | Operating principle: the session model is the brain; scouts (haiku) read, verifiers (haiku) run, browser (sonnet) drives Chrome, builders (sonnet/opus) edit, via briefs and receipts |
 | `review-mr` | Author-depth MR review; reproduces testing steps, runs checklists, gates all outbound notes |
@@ -70,3 +69,5 @@ it once by adding to `~/.claude/settings.json`:
 
 Pair it with the `orchestrate` skill's delegation rules in `global/CLAUDE.md` (scouts read,
 verifiers run, builders edit) and pick the 200k model variant in `/model`, not the `[1m]` one.
+`install.sh` now merges the `statusLine` entry into `settings.json` automatically (needs `jq`;
+paste it by hand if `jq` is missing).

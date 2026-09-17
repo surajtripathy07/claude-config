@@ -143,5 +143,20 @@ if [ -f "$src" ]; then
   fi
 fi
 
+
+# --- status line setting -------------------------------------------------------
+# Turns on the linked statusline.sh in settings.json; safe to re-run.
+settings="$CLAUDE_DIR/settings.json"
+if [ -f "$CLAUDE_DIR/statusline.sh" ] || [ -L "$CLAUDE_DIR/statusline.sh" ]; then
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "jq not found; add manually: \"statusLine\": {\"type\": \"command\", \"command\": \"~/.claude/statusline.sh\"} in $settings" >&2
+  else
+    [ -f "$settings" ] || echo '{}' > "$settings"
+    cp "$settings" "$settings.bak.$(date +%Y%m%d%H%M%S)"
+    jq '.statusLine = {type:"command", command:"~/.claude/statusline.sh"}' "$settings" > "$settings.tmp" && mv "$settings.tmp" "$settings"
+    echo "merged:   statusLine into $settings (backup kept alongside)"
+  fi
+fi
+
 echo
 echo "Done. Installed into $CLAUDE_DIR"
