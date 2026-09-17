@@ -125,5 +125,23 @@ if [ -f "$src" ]; then
   fi
 fi
 
+# --- status line script -------------------------------------------------------
+# Context-usage indicator. Enable it by adding to ~/.claude/settings.json:
+#   "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" }
+src="$REPO_DIR/global/statusline.sh"
+dest="$CLAUDE_DIR/statusline.sh"
+
+if [ -f "$src" ]; then
+  chmod +x "$src"
+  rm -f "$dest"
+  if [ "$MODE" = "--copy" ]; then
+    cp "$src" "$dest"
+    echo "copied:   statusline.sh"
+  else
+    ln -s "$src" "$dest"
+    echo "linked:   statusline.sh -> $src"
+  fi
+fi
+
 echo
 echo "Done. Installed into $CLAUDE_DIR"

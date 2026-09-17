@@ -1,6 +1,6 @@
 ---
 name: write-goal
-description: Write a goal file into docs/goals/ following the enforced YYYY-MM-DD_<summary>_goal.md naming. Synthesizes the goal from open GitHub issues, the latest handoffs, accepted-ADR phase queues, and recorded maintainer decisions — or from a goal the user states directly. Produces a file a future Claude session can execute against without re-deriving context.
+description: Write a goal file into docs/goals/ following the enforced YYYY-MM-DD_<summary>_goal.md naming. Synthesizes the goal from open GitHub issues, the latest handoff, docs/DECISIONS.md and docs/design/*.md, and recorded maintainer decisions — or from a goal the user states directly. Produces a file a future Claude session can execute against without re-deriving context.
 ---
 
 # write-goal — turn repo state into an executable goal file
@@ -11,15 +11,15 @@ re-reading the whole repo history.
 
 ## 1. Gather (delegate — do not burn driver context)
 
-Dispatch one read-only sub-agent to collect, and return structured:
+Dispatch one `scout` agent (see the `orchestrate` skill) to collect, and return structured:
 
 - `gh issue list --state open --limit 100` — number, title, labels; flag anything the user's
   topic matches.
-- The latest 1–2 handoffs in `docs/adr/` — "Next session" / unblocked-work sections.
-- ADRs with **Status: Accepted** whose phases are not yet shipped (the phase queue is the
-  natural work queue for a goal).
-- The latest recorded maintainer decisions (ADR status lines, recent issue comments) so the
-  goal never re-opens a settled call.
+- `docs/HANDOFF.md`'s `## Latest` section — "Next session" / unblocked-work content.
+- `docs/DECISIONS.md` entries with **Status: Accepted** and `docs/design/*.md` docs whose build
+  isn't shipped yet (these are the natural work queue for a goal).
+- The latest recorded maintainer decisions (`docs/DECISIONS.md` status lines, recent issue
+  comments) so the goal never re-opens a settled call.
 
 If the user stated the goal explicitly, gathering only needs to fill in the linked issues,
 gates, and verification — not to invent the goal.
@@ -35,9 +35,9 @@ The consumer is a future session with zero context. Optimize for that:
 - **Definition of done**: only criteria a session can *verify mechanically* — a command that
   exits 0, a test count, a page state, a row count, a cost ceiling. Never "improved" or
   "better". Each criterion gets its verification command in §Verification.
-- **Work queue**: ordered steps. Each step carries: its issue `#N` or ADR phase (e.g.
-  `0025-P2`), the gate if one applies (sign-off, fresh adversarial review, HUMAN GATE), and
-  what evidence closes it. A session should be able to start at the first unchecked step.
+- **Work queue**: ordered steps. Each step carries: its issue `#N` or design doc (e.g.
+  `docs/design/memory-v1.md`), the gate if one applies (sign-off, fresh adversarial review, HUMAN
+  GATE), and what evidence closes it. A session should be able to start at the first unchecked step.
 - **Non-goals**: the adjacent work most likely to cause scope creep, named explicitly, with
   where it lives instead (issue number or "future goal").
 - **Verification**: exact commands and URLs, one per done-criterion. Prefer
@@ -67,7 +67,7 @@ Frontmatter (machine-read):
 status: active
 written: YYYY-MM-DD
 issues: [..]
-adrs: [..]
+decisions: [..]
 ---
 ```
 

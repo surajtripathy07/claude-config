@@ -57,3 +57,16 @@ current. It refuses to run over uncommitted local edits so nothing is lost.
 
 Edit under the clone (or under `~/.claude/skills/` — same files via symlink), then commit
 and push. Other devices pick it up with `sync.sh`.
+
+## Context-usage status line
+
+`global/statusline.sh` shows `model │ ctx used/window │ $cost` in the Claude Code status bar
+(🟢 <100k, 🟡 <150k, 🔴 hand off). `install.sh` links it to `~/.claude/statusline.sh`; enable
+it once by adding to `~/.claude/settings.json`:
+
+```json
+"statusLine": { "type": "command", "command": "~/.claude/statusline.sh" }
+```
+
+Pair it with the `orchestrate` skill's delegation rules in `global/CLAUDE.md` (scouts read,
+verifiers run, builders edit) and pick the 200k model variant in `/model`, not the `[1m]` one.

@@ -1,6 +1,6 @@
 ---
 name: pending-decisions
-description: Surface every pending maintainer decision/action with enough context to decide on the spot. Reads recent handoffs, Proposed ADRs, and open issues; presents each blocking item as a decision brief with selectable options; records the outcomes so work unblocks.
+description: Surface every pending maintainer decision/action with enough context to decide on the spot. Reads the latest handoff, Proposed design docs in docs/design/, Status lines in docs/DECISIONS.md, and open issues; presents each blocking item as a decision brief with selectable options; records the outcomes so work unblocks.
 ---
 
 # Pending decisions — the sign-off conversation, made cheap
@@ -9,14 +9,15 @@ Purpose: the maintainer should be able to sit down, run this, and clear every de
 
 ## 1. Gather (delegate — do not burn driver context)
 
-Dispatch a read-only sub-agent (implementation-tier model) to sweep, in this order, and return a structured list:
+Dispatch a `scout` agent (see the `orchestrate` skill) to sweep, in this order, and return a structured list:
 
-- The **latest 2–3 handoffs** in `docs/adr/` — especially sections named "Next session", "sign-off", "Decisions made", "flagged".
-- **ADRs whose status is Proposed** (or containing "awaiting sign-off", "decision needed", "open question", "OQ"). Capture each open call, its options, and any provisional values that must not freeze without validation.
-- **Open GitHub issues** (`gh issue list`) mentioning a maintainer call, "HUMAN GATE", "decision", or blocked-on labels; plus any issue the handoffs name as gated.
-- **Branch state**: unpushed commits, un-merged branches, anything the handoffs flag for "morning review".
+- **`docs/HANDOFF.md`**'s `## Latest` section — especially "Next session", "sign-off", "Decisions made", "flagged".
+- **Design docs in `docs/design/` whose status is Proposed** (or containing "awaiting sign-off", "decision needed", "open question", "OQ"). Capture each open call, its options, and any provisional values that must not freeze without validation.
+- **`docs/DECISIONS.md` entries without a terminal `Status:`** (not yet `Accepted` or `Superseded by D-NNN`) — these are open calls too.
+- **Open GitHub issues** (`gh issue list`) mentioning a maintainer call, "HUMAN GATE", "decision", or blocked-on labels; plus any issue the handoff names as gated.
+- **Branch state**: unpushed commits, un-merged branches, anything the handoff flags for "morning review".
 
-De-duplicate against what is already decided: an ADR marked Accepted/Rejected, an issue comment recording the call, or a handoff noting sign-off received. Never re-ask a settled question.
+De-duplicate against what is already decided: a design doc or `docs/DECISIONS.md` entry marked Accepted/Superseded, an issue comment recording the call, or the handoff noting sign-off received. Never re-ask a settled question.
 
 ## 2. Build a decision brief per item
 
@@ -40,7 +41,7 @@ Order items by **unblocking power**: the decision that releases the most queued 
 
 For each decision taken, immediately:
 
-- Update the **ADR status line** (Proposed → Accepted/Rejected/Modified, with date and any modifications inline).
+- Update the **design doc or `docs/DECISIONS.md` status line** (Proposed → Accepted/Superseded by D-NNN, with date and any modifications inline).
 - **Comment on the linked issue** with the call and its rationale; close issues the decision kills.
 - Note deferred/skipped items explicitly — they carry to the next run, not into oblivion.
 - Finish with a one-screen summary: decided / deferred / newly unblocked work, and offer to dispatch the unblocked work per `/operating-mode` (this skill decides; it does not build).
