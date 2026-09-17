@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Experimental arm: run Claude Code through a local headroom compression proxy.
+# Leaves the plain `claude` command untouched (control arm). Usage: claude-hr [claude args]
+#   HEADROOM_PORT=8787   proxy port (default)
+#   ORCHESTRATE_LABEL=x  free-text label recorded in ~/.claude/experiments/sessions.tsv
+set -euo pipefail
+port="${HEADROOM_PORT:-8787}"
+command -v headroom >/dev/null 2>&1 || { echo "headroom not installed. Try: uv tool install --python 3.13 'headroom-ai[all]'  (or pipx install 'headroom-ai[proxy]')" >&2; exit 1; }
+if ! curl -s -m 2 -o /dev/null "http://127.0.0.1:${port}/" ; then
+  log="${TMPDIR:-/tmp}/headroom-proxy.log"
+  echo "starting headroom proxy on :${port} (log: $log)" >&2
+  nohup headroom proxy --port "$port" >"$log" 2>&1 &
+  for _ in $(seq 1 30); do curl -s -m 1 -o /dev/null "http://127.0.0.1:${port}/" && break; sleep 0.5; done
+fi
+export ANTHROPIC_BASE_URL="http://127.0.0.1:${port}"
+export ORCHESTRATE_LABEL="${ORCHESTRATE_LABEL:-headroom}"
+exec claude "$@"

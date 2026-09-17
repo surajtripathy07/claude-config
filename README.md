@@ -11,6 +11,25 @@ Portable Claude Code configuration — personal skills installable on any device
 | `write-goal` | Writes an executable goal file into `docs/goals/` from repo state |
 | `pending-decisions` | Surfaces every pending maintainer decision as a decision brief |
 | `own-it` | Author-depth walkthrough of a change or decision: mechanism, reasoning, verification, rebuild path |
+| `orchestrate` | Operating principle: the session model is the brain; scouts (haiku) read, verifiers (haiku) run, browser (sonnet) drives Chrome, builders (sonnet/opus) edit, via briefs and receipts |
+| `review-mr` | Author-depth MR review; reproduces testing steps, runs checklists, gates all outbound notes |
+
+## Rules
+
+| Path | What |
+|---|---|
+| `rules/writing-style.md` | Standing rules for all outward-facing writing: MR bodies, issue descriptions, commit messages, review comments. Linked into `~/.claude/CLAUDE.md` |
+
+## Agents, hooks, bin
+
+| Path | What |
+|---|---|
+| `agents/{scout,verifier,browser,builder}.md` | Custom subagents used by `orchestrate`; linked into `~/.claude/agents/` |
+| `hooks/` | PreToolUse backstop (deny big/too-many direct reads in the main session) and SessionStart experiment labeller; opt-in via `./install.sh --hooks` |
+| `bin/session-cost` | Per-session, per-model, main-vs-subagent token/cost report from local transcripts |
+| `bin/orchestrate-mode` | `strict` (default) / `interactive` / `off` marker read by the PreToolUse hook; global across sessions |
+| `bin/claude-hr` | Runs Claude Code through a local headroom proxy (experimental arm); plain `claude` stays the control |
+| `experiments/RUNBOOK.md` | How to run the orchestrate × headroom cost experiment and read the numbers |
 
 ## Install on a new device
 

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Switch the orchestrate skill's mode for the PreToolUse backstop hook. Global across
+# concurrent sessions (the hook reads one marker file).
+#   orchestrate-mode                 show current mode
+#   orchestrate-mode strict          default: budget + whole-file limit enforced
+#   orchestrate-mode interactive     tight-loop work: budget off, whole-file limit relaxed
+#   orchestrate-mode off             hook does nothing
+set -euo pipefail
+dir="$HOME/.claude/experiments"; f="$dir/orchestrate.mode"; log="$dir/mode-changes.tsv"
+mkdir -p "$dir"
+case "${1:-}" in
+  "" ) echo "${2:-}$(cat "$f" 2>/dev/null || echo strict)" ;;
+  strict|interactive|off)
+    printf '%s' "$1" > "$f"
+    [ -f "$log" ] || printf 'changed_at\tmode\tcwd\n' > "$log"
+    printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$(pwd)" >> "$log"
+    echo "orchestrate mode: $1" ;;
+  *) echo "usage: orchestrate-mode [strict|interactive|off]" >&2; exit 1 ;;
+esac
