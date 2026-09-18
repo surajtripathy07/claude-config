@@ -29,6 +29,12 @@ mkdir -p "$TARGET"
 # remote, bot username, label vocabulary) that must never be overwritten by this
 # repo's generic copy and must never be written back into it. It is installed
 # file-by-file below instead of as one linked/copied directory.
+#
+# For every other skill: a default symlinked install has no local-edit risk here —
+# editing it edits the repo file, which sync.sh's uncommitted-changes check already
+# protects. The diff-and-confirm guard below only matters for a real file/dir at
+# $dest (a --copy install, or a symlink the user swapped for a local copy), since
+# that content lives outside git and would otherwise be silently rm -rf'd.
 for skill in "$REPO_DIR"/skills/*/; do
   name="$(basename "$skill")"
   dest="$TARGET/$name"
@@ -50,7 +56,29 @@ for skill in "$REPO_DIR"/skills/*/; do
     continue
   fi
 
-  if [ -e "$dest" ] || [ -L "$dest" ]; then
+  if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+    # $dest is a real file/dir, not a symlink into the repo — it may hold local
+    # edits (hand-edited --copy install, or a symlink the user swapped for a real
+    # file). Only clobber it silently if it's identical to the repo's copy.
+    if diff -rq "$skill" "$dest" >/dev/null 2>&1; then
+      rm -rf "$dest"
+    else
+      echo "local changes detected in ~/.claude/skills/$name:"
+      diff -rq "$skill" "$dest" || true
+      if [ ! -t 0 ]; then
+        echo "skipping: $name (non-interactive; local changes kept — re-run with this skill removed from ~/.claude/skills if you want it reinstalled)" >&2
+        continue
+      fi
+      read -r -p "Overwrite local changes to $name? [y/N] " ans
+      case "$ans" in
+        y|Y) rm -rf "$dest" ;;
+        *)
+          echo "skipping: $name (local changes kept — re-run with this skill removed from ~/.claude/skills if you want it reinstalled)"
+          continue
+          ;;
+      esac
+    fi
+  elif [ -e "$dest" ] || [ -L "$dest" ]; then
     echo "replacing existing: $name"
     rm -rf "$dest"
   fi

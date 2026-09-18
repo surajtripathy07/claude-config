@@ -3,6 +3,10 @@
 #   ~/dev/claude-config/sync.sh
 #
 # Refuses to pull over uncommitted local edits so nothing is lost; commit or stash first.
+# This is what protects a symlinked skill (the default install mode) from being
+# overwritten: editing it edits the repo file directly, so it shows up here as an
+# uncommitted change. A --copy-installed or de-symlinked skill isn't a repo file, so
+# it isn't covered by this check — see the local-changes guard in install.sh instead.
 
 set -euo pipefail
 
