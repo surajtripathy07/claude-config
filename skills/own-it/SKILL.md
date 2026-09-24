@@ -97,33 +97,31 @@ they do not have to prove it. If they do explain back, correct precisely: right,
 backwards. Short — calibration, not a second lecture. Missed pieces often mean §1 was
 too thin; say so.
 
-## Delegation — a fork writes it, the brain keeps only the receipt
+## Delivery — inline by default, fork only on request
 
-The walkthrough itself is not written directly into this conversation. Dispatch a `fork`
-subagent (it inherits this session's full context, so it already holds the same
-understanding as the main session — it is not re-deriving anything) with the full brief
-below. The fork:
+**Default: write the walkthrough inline**, directly in this conversation, as the reply. All
+filled sections (§0–§8), diagrams included. No subagent, no Artifact.
+
+**Fork only when the user explicitly asks** — "fork it", "write it up as an artifact",
+"publish it", "put it on a page", or `/own-it --fork`. Do not fork on my own judgment that the
+walkthrough is long. In that case, dispatch a `fork` subagent (it inherits this session's
+full context, so it is not re-deriving anything) with the full brief below. The fork:
 
 1. Writes the complete walkthrough (all filled sections, §0–§8, diagrams included).
 2. Publishes it as an Artifact (a private web page) via the Artifact tool.
 3. Reports back to the main session **only**: the § Thirty-second version verbatim, the
    Artifact URL, and which sections it filled vs. explicitly skipped.
 
-That receipt — not the full walkthrough text — is what lands in this session's context. The
-main session relays the receipt and link to the user; it never re-ingests the full text.
+The main session relays that receipt and link to the user; it never re-ingests the full text.
 
-**Keep the fork addressable, don't respawn.** Once published, the fork stays around for the
-rest of this topic. Any follow-up — "go deeper on §3", "explain it back to me" — is routed
-to that same fork by name via `SendMessage`, since it still holds full context and never
-needs to re-derive anything. Only spawn a new fork if the previous one for this topic was
-already closed (see below) or the topic has moved on entirely.
+**Keep the fork addressable, don't respawn.** Follow-ups on a forked walkthrough — "go deeper
+on §3", "explain it back to me" — go to that same fork by name via `SendMessage`. Only spawn
+a new fork if the previous one was already closed or the topic has moved on entirely.
 
-**Close it explicitly when done.** When the user signals they're finished with this
-walkthrough — moves to unrelated work, or the session is wrapping up — send that fork one
-short closing message so it doesn't sit open for no reason. Don't leave it dangling
-indefinitely on the assumption it might be needed again.
+**Close it explicitly when done.** When the user moves to unrelated work or the session is
+wrapping up, send that fork one short closing message so it doesn't sit open.
 
-## Show, don't describe — ASCII diagrams, inside the artifact
+## Show, don't describe — ASCII diagrams
 
 A picture buys depth per minute only where the content is spatial or sequential. Three
 places in the walkthrough are:
@@ -140,9 +138,8 @@ faster. Never draw for the reasoning, assumptions, verification, or uncertainty 
 Rules for the drawing:
 
 - Plain ASCII in a fenced code block. Boxes, `-->`, `|`, labels. No mermaid, no SVG.
-- The diagram lives inside the fork's published Artifact (see § Delegation), not printed
-  separately into this conversation — the fork pays whatever cost the diagram carries, the
-  main session doesn't.
+- The diagram lives inside the walkthrough itself (inline, or in the fork's Artifact when
+  forked per § Delivery), not as a separate message.
 - Mark the changed element visibly: `[*]`, `<-- changed`, or a `NEW`/`OLD` label.
 - Keep it under about twelve lines wide and eight tall; if it does not fit, the diagram is
   showing too much — cut to the path the change touches.
@@ -188,8 +185,8 @@ missing for them, fill it, and ask again.
 
 - Read-only over the change under review. This skill explains and asks; it does not make
   further changes to the code or config it is explaining. If the walkthrough reveals a
-  mistake, name it under §7 and let the user decide. (The fork writing and publishing the
-  walkthrough itself, per § Delegation, is not an exception to this — it never touches the
+  mistake, name it under §7 and let the user decide. (A fork writing and publishing the
+  walkthrough, per § Delivery, is not an exception to this — it never touches the
   reviewed change.)
 - Never invent a mechanism to fill a section. If I do not know how something works, that
   is the finding, and it goes in §7 with how I would find out.
