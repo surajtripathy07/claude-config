@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Implements ONE bounded change from a written brief — code, spec, migration, component — inside a stated file scope, runs the verification commands the brief names, and returns a structured receipt. Default model sonnet; the orchestrator passes model: opus for judgment-heavy work. Never commits, never widens scope, never addresses the user.
+description: Implements ONE bounded change from a written brief — code, spec, migration, component — inside a stated file scope, runs the verification commands the brief names, and returns a structured receipt. Default model sonnet; opus only when the user explicitly says so in that session. Never commits, never widens scope, never addresses the user.
 model: sonnet
 disallowedTools:
   - Agent

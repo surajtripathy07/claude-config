@@ -27,7 +27,7 @@ not explore or implement. Follow the `orchestrate` skill (`~/.claude/skills/orch
 - UI checks go to a `browser` agent (sonnet) with a scripted checklist and a `PROFILE` clause;
   it confirms the Chrome profile first and returns BLOCKED for the brain to ask me if unsure.
   One at a time; the brain views screenshots only on UNCLEAR.
-- Code changes go to a `builder` agent (sonnet; opus when judgment-heavy) via a written
+- Code changes go to a `builder` agent (sonnet; opus only when I explicitly say so in that session) via a written
   brief with scope, done-criteria, verify commands, and a capped receipt format.
 - The brain acts directly only for a known-location single fact under ~40 lines of output,
   or a trivial one-file edit of ≤ 5 lines.

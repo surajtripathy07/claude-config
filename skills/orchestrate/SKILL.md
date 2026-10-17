@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Operating principle for every session. The session model is the brain — it decides, designs, reviews, and talks to the user — and delegates reading, searching, running, and editing to cheaper subagents (scout=haiku, verifier=haiku, builder=sonnet or opus) through written briefs and receipts, guarding its own context as the scarcest resource. Use at session start, before any file read, search, long command, or code edit, and whenever a subagent reports back.
+description: Operating principle for every session. The session model is the brain — it decides, designs, reviews, and talks to the user — and delegates reading, searching, running, and editing to cheaper subagents (scout=haiku, verifier=haiku, builder=sonnet; opus only on the user's explicit say-so) through written briefs and receipts, guarding its own context as the scarcest resource. Use at session start, before any file read, search, long command, or code edit, and whenever a subagent reports back.
 ---
 
 # orchestrate — the brain delegates; the hands are cheap and disposable
@@ -32,14 +32,18 @@ Three consequences:
 | **Scout** | haiku | Answers a *specific* question about the codebase: where, what, how many, which. Returns locations and short excerpts | Edits, runs commands with side effects, speculates beyond the question | `Agent(subagent_type: "scout")` |
 | **Verifier** | haiku (sonnet if the check needs judgment) | Runs the specs, lints, diffs, or commands named in the brief and reports results verbatim-tail. Independent of the builder | Edits, fixes, "helps" | `Agent(subagent_type: "verifier")` |
 | **Browser** | sonnet | Runs a scripted UI checklist in the user's real Chrome via the chrome-devtools MCP: navigate, fill, click, snapshot, assert, screenshot. Confirms the Chrome profile first. Returns per-step verdicts and screenshot paths, never images | Runs in parallel with another browser agent, logs in/out, takes money/data actions not listed in the brief | `Agent(subagent_type: "browser")` — one at a time; continue via `SendMessage` |
-| **Builder** | sonnet by default; opus when judgment-heavy (see § Tiering) | Implements one bounded task from a brief, in scope, runs the checks the brief names, returns a receipt | Commits, touches files outside scope, widens scope, asks the user directly | `Agent(subagent_type: "builder", model: "sonnet"|"opus")` |
+| **Builder** | sonnet; opus only if the user explicitly says so in that session (see § Tiering) | Implements one bounded task from a brief, in scope, runs the checks the brief names, returns a receipt | Commits, touches files outside scope, widens scope, asks the user directly | `Agent(subagent_type: "builder", model: "sonnet")` |
 
 Agent definitions live in `~/.claude/agents/{scout,verifier,browser,builder}.md` (installed from
 `~/dev/claude-config/agents/`). The `model:` passed to the `Agent` tool overrides the
 definition, so tier selection is a per-call decision, not a config change.
 
 Built-in `Explore` and `Plan` agents are acceptable substitutes for scout when a custom
-agent is unavailable — pass `model: "haiku"` explicitly. **Never use `subagent_type: "fork"`
+agent is unavailable — pass `model: "haiku"` explicitly. Every Agent call must set `model:` explicitly to scout=haiku, verifier=haiku, builder/browser=sonnet; never omit it for general-purpose/Explore/Plan (they inherit the parent's model, which may be Opus) — pass sonnet or haiku.
+
+Same rule for `Workflow` scripts: every `agent()` call sets `model: 'sonnet'` (or `'haiku'` for read-only lookups). Never write `model: 'opus'` in a script unless the user said so in that session; a workflow fans out many agents, so one Opus line multiplies.
+
+**Never use `subagent_type: "fork"`
 for exploration or building**: a fork inherits the brain's entire context, so it costs as
 much as the brain and defeats the purpose. Fork only when the accumulated context *is* the
 input (e.g. "write the handoff for this session").
@@ -54,7 +58,7 @@ input (e.g. "write the handoff for this session").
 | Run specs, lint, migrations status, `git diff --stat`, build | verifier | Long output the brain must not read raw |
 | Reproduce UI steps, check a page, capture Before/After | browser | Screenshots are the most expensive thing the brain can ingest |
 | Implement a change: new method, spec, migration, component | builder (sonnet) | Well-specified mechanical work |
-| Multi-file refactor, subtle bug fix, anything where "which of three ways" matters | builder (opus) | Judgment inside the edit |
+| Multi-file refactor, subtle bug fix, anything where "which of three ways" matters | builder (sonnet); brain may suggest opus in one line and wait for the user's go | Judgment inside the edit |
 | Design, choose between approaches, review a receipt, answer the user | brain | This is the job |
 | `own-it`, `git-commit`, `pending-decisions`, MR review verdicts | brain | User-facing, decision-bearing |
 | Handoff | fork or brain | The context is the input |
@@ -77,11 +81,13 @@ polluted brain context costs the rest of the session.
 | Find, list, count, locate, quote, check-if-exists | haiku |
 | Run and report; compare expected vs actual | haiku |
 | Implement against a precise spec with named files and named done-criteria | sonnet |
-| Implement where the brief has to say "figure out the right seam" or "match the neighbouring pattern" | opus |
-| Anything touching auth, data migrations, billing math, or that the brain would want to `own-it` line by line | opus, then verifier, then brain spot-check |
+| Implement where the brief has to say "figure out the right seam" or "match the neighbouring pattern" | sonnet (opus only if the user says so) |
+| Anything touching auth, data migrations, billing math, or that the brain would want to `own-it` line by line | sonnet, then verifier, then brain spot-check (opus only if the user says so) |
 | Decide, design, review, communicate | brain |
 
-Escalate a tier only after a failure at the current tier (see § Control loop). Never
+Escalate a tier only after a failure at the current tier (see § Control loop). Subagents
+never use opus by default: the brain may suggest it in one line and must wait for the user's
+explicit go in that session; it never passes `model: "opus"` on its own judgment. Never
 start at opus "to be safe" — the brief was the unsafe part; fix the brief.
 
 ## The brief — what every delegation must contain
@@ -181,8 +187,8 @@ FORBIDDEN   any UI action with money/data/account consequences not in STEPS is a
   turns has a bad brief or a bad tier, not bad luck.
 - **Escalation ladder, per task:**
   1. Failure at sonnet → re-read the receipt's UNSURE; if the brief was ambiguous, fix the
-     brief and retry at sonnet. Otherwise retry at opus.
-  2. Failure at opus → the brain inspects, bounded: one scout question, one targeted diff.
+     brief and retry at sonnet. Otherwise suggest opus to the user in one line and wait for their go.
+  2. Failure at opus (user-approved) → the brain inspects, bounded: one scout question, one targeted diff.
      Then either a corrected brief or
   3. Stop and ask the user via `own-it` § Asking. Three failed attempts is a signal about
      the task, not about persistence.
@@ -277,7 +283,7 @@ brain's discipline (the `| head` rule). Install via `./install.sh --hooks` (merg
 - Retrying a failed builder with the same brief.
 - One builder briefed with three tasks joined by "and then".
 - A 60-file `git diff` read in the brain instead of `--stat` plus two targeted files.
-- Starting at opus because the task "feels important". Importance goes into the brief and
+- Passing opus without the user's explicit say-so, or starting at opus because the task "feels important". Importance goes into the brief and
   the verification, not the tier.
 
 ## Interaction with other skills
