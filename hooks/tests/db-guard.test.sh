@@ -48,15 +48,20 @@ if [ "$rc" -eq 0 ] && [ -z "$out" ]; then ok "guard allow ls without jq (rc=$rc)
 echo "== db-lock"
 root="$(mktemp -d)"; export DB_LOCK_ROOT="$root"
 cd "$here"
+# A fixed sleep races db-lock's own startup under load; wait until the owner file names the holder.
+wait_owner() {
+  local i; for i in $(seq 100); do grep -qs "^pid=$1\$" "$root"/*.lock/owner && return 0; sleep 0.1; done
+  echo "holder pid=$1 never wrote its owner file" >&2; return 1
+}
 "$dblock" -- sleep 3 & holder=$!
-sleep 0.5
+wait_owner "$holder"
 err="$("$dblock" -- echo hi 2>&1)"; rc=$?
 if [ "$rc" -eq 75 ] && grep -q "pid=$holder" <<<"$err"; then ok "busy lock exits 75 naming holder pid=$holder"; else bad "busy lock" "rc=$rc $err"; fi
 out="$(DB_LOCK_WAIT=5 "$dblock" -- echo hi 2>&1)"; rc=$?
 if [ "$rc" -eq 0 ] && [ "$out" = hi ]; then ok "DB_LOCK_WAIT=5 succeeds after holder exits (rc=$rc)"; else bad "wait" "rc=$rc $out"; fi
 wait "$holder" 2>/dev/null
 "$dblock" -- sleep 30 & holder=$!
-sleep 0.5
+wait_owner "$holder"
 orphan="$(pgrep -P "$holder")"
 kill -9 "$holder"; wait "$holder" 2>/dev/null
 out="$("$dblock" -- echo hi 2>&1)"; rc=$?
