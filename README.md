@@ -28,6 +28,7 @@ Portable Claude Code configuration — personal skills installable on any device
 | `bin/session-cost` | Per-session, per-model, main-vs-subagent token/cost report from local transcripts |
 | `bin/orchestrate-mode` | `strict` (default) / `interactive` / `off` marker read by the PreToolUse hook; global across sessions |
 | `bin/claude-hr` | Runs Claude Code through a local headroom proxy (experimental arm); plain `claude` stays the control |
+| `bin/worktree-bootstrap` | Makes a fresh git worktree usable: copies missing gitignored config from the primary checkout, runs `bundle`/`yarn install` through `mise exec`, then prints a PASS/FAIL table (`--check` skips installs). Idempotent |
 | `experiments/RUNBOOK.md` | How to run the orchestrate × headroom cost experiment and read the numbers |
 
 ## Install on a new device

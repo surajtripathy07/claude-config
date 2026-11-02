@@ -19,11 +19,13 @@ lsof -nP -iTCP -sTCP:LISTEN | awk 'NR>1{print $1, $9}' | sort -u > "$B/listeners
 
 Then, per the profile:
 
-- **Database.** Preferred: a snapshot. `pg_dump -Fc <db> > "$B/<db>.dump"`. Record the
-  current schema version too (`select max(version) from schema_migrations`). If the profile
-  says the database is too large to dump in reasonable time, record the schema version and
-  the row counts of every table the change's migrations or test steps will touch, and plan to
-  restore by rollback plus targeted deletes.
+- **Database.** The local Postgres is shared with the user's other sessions and servers, so
+  the baseline is row counts, not a restore point. Record the schema version
+  (`select max(version) from schema_migrations`) and `$B/row_counts` (per-table counts of
+  every table the change's migrations or test steps will touch). While setting up and
+  reproducing, log each created record's table and id, and for bulk seeds the `min(id)`,
+  `max(id)` and `created_at` window, so Phase 8 can delete exactly those. Also take a
+  `pg_dump -Fc <db> > "$B/<db>.dump"` as the last-resort snapshot only (see Phase 8 step 3).
 - **Feature flags.** For every flag the diff reads (grep the diff for the profile's flag
   API), record its current local state the profile's way, verbatim, into `$B/flags/<name>`.
 - **Running processes.** From `$B/listeners`, note which of the profile's app processes are
@@ -56,12 +58,17 @@ The order exists because each step needs something the next one removes.
    that list. Verify the schema version (the profile's migration-status command) equals the
    baseline version, and that the profile's schema-diff command shows the checked-in schema
    file back at the baseline's dirty state (or clean).
-3. **Restore the database.** If a snapshot exists:
-   `dropdb <db> && createdb <db> && pg_restore -d <db> "$B/<db>.dump"` (the profile gives
-   the exact connection flags). No snapshot: delete the records the reproduction created
-   (the record's Phase 5 log lists every record created, by table and id) and re-verify
-   the row counts captured at baseline. The rollback in step 2 already reverted the
-   schema, so this step is about data.
+3. **Clean up the data, targeted.** Never `dropdb`/`pg_restore` here: that wipes whatever
+   other sessions wrote to the shared database. Delete only the rows this review created, by
+   the ids and `created_at` bounds logged in Phase 5 (children before parents), purge
+   attachments explicitly (Active Storage blobs purge asynchronously), then compare current
+   per-table counts with `$B/row_counts`. Any difference is `could not restore: <table>`.
+   The rollback in step 2 already reverted the schema, so this step is about data.
+   **Last resort, only on the user's explicit go:** when rows were written that were not
+   logged and cannot be told apart, restore the snapshot under the lock so no other session
+   writes meanwhile: `db-lock -- pg_restore -d <db> --clean --if-exists "$B/<db>.dump"` (the
+   profile gives the connection flags). Before asking, check `git worktree list` and
+   `pgrep -l rspec` for sessions that would lose data.
 4. **Feature flags** back to the captured state, using the profile's method. Verify by
    reading the state again and diffing against `$B/flags/<name>`.
 5. **Remove scratch files** listed in `$B/created_files`. Look before deleting: if a file

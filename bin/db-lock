@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# db-lock -- <command...>
+# Runs <command> holding an exclusive per-repo lock, so parallel worktree sessions never
+# migrate, restore or prepare the shared Postgres at the same time.
+#   DB_LOCK_WAIT=0          seconds to wait for the lock (0 = fail at once)
+#   DB_LOCK_ROOT=~/.claude/locks
+# Exit 75 (EX_TEMPFAIL) when the lock is held; otherwise the command's own exit code.
+set -u
+
+usage() { echo "usage: db-lock -- <command...>" >&2; exit 64; }
+[ "${1:-}" = "--" ] || usage
+shift
+[ $# -gt 0 ] || usage
+
+root="${DB_LOCK_ROOT:-$HOME/.claude/locks}"
+wait_s="${DB_LOCK_WAIT:-0}"
+case "$wait_s" in ''|*[!0-9]*) echo "db-lock: DB_LOCK_WAIT must be whole seconds" >&2; exit 64 ;; esac
+
+# The common dir is shared by every worktree of a repo, so they all contend on one lock.
+key="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || pwd)"
+name="$(printf '%s' "$key" | sed -e 's|/\.git$||' -e 's|[^A-Za-z0-9._-]|_|g' -e 's/^_*//')"
+lock="$root/$name.lock"
+mkdir -p "$root"
+
+holder() { cat "$lock/owner" 2>/dev/null | tr '\n' ' '; }
+holder_pid() { sed -n 's/^pid=//p' "$lock/owner" 2>/dev/null; }
+
+# mkdir is atomic; macOS has no flock(1). Returns 0 once we own $lock.
+try_take() {
+  if mkdir "$lock" 2>/dev/null; then
+    {
+      echo "pid=$$"
+      echo "session=${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-}}"
+      echo "cwd=$(pwd)"
+      echo "command=$*"
+      echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    } > "$lock/owner"
+    return 0
+  fi
+  local pid; pid="$(holder_pid)"
+  if [ -z "$pid" ]; then
+    # Between a peer's mkdir and its owner write there is no pid yet; only an old,
+    # owner-less dir is a crash leftover.
+    local age=$(( $(date +%s) - $(stat -f %m "$lock" 2>/dev/null || date +%s) ))
+    [ "$age" -gt 10 ] || return 1
+  elif kill -0 "$pid" 2>/dev/null; then
+    return 1
+  fi
+  # Stale. Rename rather than rm so two recoverers can't both delete and re-create;
+  # only one mv of the same dir succeeds.
+  local graveyard="$lock.stale.$$"
+  mv "$lock" "$graveyard" 2>/dev/null || return 1
+  if [ "$(sed -n 's/^pid=//p' "$graveyard/owner" 2>/dev/null)" != "$pid" ]; then
+    mv "$graveyard" "$lock" 2>/dev/null || true
+    return 1
+  fi
+  echo "db-lock: recovered stale lock from dead pid ${pid:-?}" >&2
+  rm -rf "$graveyard"
+  try_take "$@"
+}
+
+deadline=$(( $(date +%s) + wait_s ))
+until try_take "$@"; do
+  if [ "$(date +%s)" -ge "$deadline" ]; then
+    echo "db-lock: $lock is held by: $(holder)" >&2
+    echo "db-lock: retry later, or set DB_LOCK_WAIT=<seconds> to wait." >&2
+    exit 75
+  fi
+  sleep 1
+done
+
+child=""
+release() { [ "$(holder_pid)" = "$$" ] && rm -rf "$lock"; }
+on_signal() {
+  [ -n "$child" ] && kill -"$1" "$child" 2>/dev/null
+  wait "$child" 2>/dev/null
+  release
+  trap - EXIT
+  exit $(( 128 + $2 ))
+}
+trap release EXIT
+trap 'on_signal INT 2' INT
+trap 'on_signal TERM 15' TERM
+
+# Background + wait so a TERM to this wrapper is handled now, not after the command ends;
+# the explicit <&0 keeps stdin, which non-interactive bash otherwise points at /dev/null.
+"$@" <&0 &
+child=$!
+wait "$child"
+exit $?

@@ -72,3 +72,30 @@ the same with and without its flag is a finding.
 
 Followed by: records created (for Phase 8), flags changed (for Phase 8), and anything I
 could not do locally with the reason (external sandbox, missing seed, permission).
+
+## Shell and environment traps (any project)
+
+- **zsh does not word-split variables.** `SPECS="a.rb b.rb"; bin/rspec $SPECS` passes one
+  argument and fails with `LoadError` and `0 examples, 0 failures, 1 error occurred outside
+  of examples`. Pass literal separate paths or an array (`"${FILES[@]}"`). Treat any run
+  reporting 0 examples as a failure, and say so when briefing verifiers (one reported PASS on
+  a zero-example run).
+- **zsh history modifier:** `git show $H:app/x.rb` fails (`:a`); write `git show "${H}:app/x.rb"`.
+  A leading `=` expands to a command path: quote separators, `echo '=== X ==='`. Never name a
+  variable `path` (clobbers `$PATH`).
+- **macOS BSD `grep -E` has no `\s`.** `grep -E "^\s*down"` matches nothing and reported "none
+  pending" with migrations pending; use `grep -w down` or `grep -E "^ +down"`.
+- **Red check (spec fails without the change):** `git checkout <base_sha> -- app/` then
+  `git checkout HEAD -- app/` keeps the branch read-only; confirm
+  `git status --porcelain | grep -v '^??'` is empty. Run it alone: anything booting in the same
+  worktree while `app/` is swapped reads the base code. `git checkout -- <file>` and
+  `git checkout -- .` can be denied at the permission gate (also for builders): do not retry;
+  use the commit-sourced form, a stash with the user's go, or a backup copy, and verify `git status`.
+- **Fresh worktree:** no `node_modules`, no Vite build, no Redis. Run `worktree-bootstrap`
+  (claude-config `bin/`). Without it, mailer specs fail with "Vite Ruby can't find packs/…
+  in the manifests" (identical on base: classify as env), and request and mailer specs
+  fail with `Redis::CannotConnectError`.
+- **Agents:** `scout` agents have no shell, so no CLI/API calls (private projects return
+  401/404); route those to a `verifier`, saved to a file read in chunks.
+- **Process baselines:** capture `pgrep -l` or `lsof` listeners, never `pgrep -fl` (it prints
+  process environments, including tokens, into the artifact).
