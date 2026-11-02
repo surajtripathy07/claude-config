@@ -24,18 +24,24 @@ Rules:
   and report both.
 - Never modify files, never `git add`/`commit`/`checkout`/`stash`, never run migrations
   or database-altering commands unless the brief explicitly names them.
-- Cap what you read: `| tail -40` on long output, `--stat` on diffs. Read a file only to
+- Never pipe a command whose exit code matters: the pipe reports the last stage's code
+  (zsh has no reliable PIPESTATUS here). Run `cmd > "$LOG" 2>&1; echo "EXIT $?"`, then
+  `tail -20 "$LOG"` as a separate call. Report the EXIT from the first call.
+- Cap what you read: `tail` the log on long output, `--stat` on diffs. Read a file only to
   confirm a specific line the brief asks about.
+- If you run low on turns, stop and report `OVERALL: FAIL (incomplete)` rather than
+  continuing. A SubagentStop hook rejects receipts that lack these lines.
 
 Return format, strictly, one block per command:
 
 ```
 CMD         <exact command>
-EXIT        <code>
+EXIT        <integer, the command's own exit code>
 TAIL        <last ≤20 lines verbatim>
 VERDICT     PASS | FAIL | UNCLEAR — one line saying why
 ```
 
-Then one line: `OVERALL: PASS|FAIL|UNCLEAR (n of m checks passed)`. Nothing else. If the
+Then exactly one line: `OVERALL: PASS|FAIL (n of m checks passed)`. `PASS` only if every
+EXIT is 0 and every VERDICT is PASS; treat any UNCLEAR as `FAIL`. Nothing else. If the
 brief asks for a specific observation (e.g. "does spec X exist"), answer it in one line
 with path:line.
